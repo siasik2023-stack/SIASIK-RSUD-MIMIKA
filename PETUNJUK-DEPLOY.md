@@ -92,7 +92,7 @@ Setiap kali mengubah `Code.gs` / HTML:
 Setiap **commit** ke repo git otomatis menjalankan **dua lapis validasi** — jika ada regresi,
 **commit diblokir** sampai diperbaiki:
 1. `node scripts/validate.js` — 47 cek statis (selesai <1 detik).
-2. `node scripts/test-form-simas.js` — 17 cek alur simpan Aset Masuk/Keluar (DOM mock, tanpa browser).
+2. `node scripts/test-form-simas.js` — 43 cek alur simpan Aset Masuk/Keluar & filter periode (DOM mock, tanpa browser).
 
 - **Aktifkan** (sekali saja per clone): `node scripts/install-git-hooks.js`
   (menyetel `core.hooksPath` ke folder hooks ter-versioning `scripts/git-hooks` — tidak perlu
@@ -102,7 +102,8 @@ Setiap **commit** ke repo git otomatis menjalankan **dua lapis validasi** — ji
 - **Tes alur form (tanpa browser)**: `node scripts/test-form-simas.js` — menjalankan
   logika asli demo (`SIASIK-Demo.html`) di Node dengan DOM mock untuk menguji alur simpan
   **Aset Masuk/Keluar**: aset baru, stok bertambah, validasi (nama kosong, jumlah ≤ 0),
-  handler form lengkap, dan penolakan saat stok tidak mencukupi (17 cek).
+  handler form lengkap, penolakan saat stok tidak mencukupi, distribusi ke ruangan,
+  dan validasi rentang periode laporan (43 cek).
 - **Uji manual**: `bash scripts/git-hooks/pre-commit`
 - **Lewati paksa** (tidak disarankan): `git commit --no-verify`
 - **Copot**: `git config --unset core.hooksPath`

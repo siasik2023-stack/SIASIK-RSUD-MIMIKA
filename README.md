@@ -86,7 +86,7 @@ Saat popup **Cetak/PDF** atau **CSV** dibuka, tema efektif dihitung ulang dari *
 ## 🔍 Validasi Otomatis & Git pre-commit hook
 
 **`node scripts/validate.js`** — 47 cek statis (selesai <1 detik) yang memblokir `git commit` bila ada regresi.
-**`node scripts/test-form-simas.js`** — tes otomatis alur form (Aset Masuk/Keluar) dengan menjalankan logika demo di Node + DOM mock: aset baru, stok bertambah, validasi, stok tak cukup (17 cek).
+**`node scripts/test-form-simas.js`** — tes otomatis alur form (Aset Masuk/Keluar) & validasi periode filter laporan, dengan menjalankan logika demo di Node + DOM mock: aset baru, stok bertambah, validasi, stok tak cukup, distribusi ke ruangan, dan rentang periode (43 cek).
 
 Daftar cek statis validate.js:
 
@@ -132,7 +132,7 @@ Daftar cek statis validate.js:
 
 **Pre-commit hook** menjalankan validasi otomatis setiap `git commit`:
 - **`node scripts/validate.js`** (47 cek statis) **dan** **`node scripts/test-form-simas.js`**
-  (17 cek alur simpan form) dijalankan berurutan — commit diblokir jika salah satu gagal.
+  (43 cek alur simpan form & filter periode) dijalankan berurutan — commit diblokir jika salah satu gagal.
 - Aktifkan (sekali per clone): `node scripts/install-git-hooks.js`
   (menolak menimpa hooks lain kecuali dengan `--force`)
 - Lewati paksa (tidak disarankan): `git commit --no-verify`
