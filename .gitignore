@@ -1,0 +1,14 @@
+# ============================================================
+# SIASIK — .gitignore
+# File & pola yang TIDAK boleh masuk repo git
+# ============================================================
+
+# Basis data spreadsheet (cadangan lokal — jangan di-commit ke git)
+# Mencakup DATABASE.xlsx beserta salinan/backup seperti "DATABASE (copy).xlsx"
+/DATABASE*.xlsx
+
+# File tes/harness sementara yang dibuat selama pengembangan
+# (biasanya langsung dihapus setelah verifikasi, tapi dicegah agar tak ter-commit)
+_test-*.js
+_test-*.sh
+_badge-test.html
