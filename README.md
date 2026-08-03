@@ -78,6 +78,18 @@ Saat popup **Cetak/PDF** atau **CSV** dibuka, tema efektif dihitung ulang dari *
 - `AksesDitolak-Demo.html` — pratinjau halaman penolakan akses; bisa dibuka dari banner demo SIASIK.
 - Tema di demo mengikuti logika prioritas yang sama, dengan default global **disimulasikan** lewat key `siasik_tema_global` (tanpa panggilan server).
 
+### 🌐 GitHub Pages (demo statis)
+
+Workflow `.github/workflows/static.yml` men-deploy **demo mandiri** (`SIASIK-Demo.html` +
+`AksesDitolak-Demo.html`) ke GitHub Pages setiap push ke `main` (dan bisa dijalankan manual via
+**Actions → Deploy demo SIASIK → Run workflow**). Sebelum deploy, CI menjalankan dua lapis
+validasi yang sama dengan pre-commit hook (`validate.js` + `test-form-simas.js`).
+
+> ⚠️ **Kenapa hanya demo?** `Index.html` adalah **template Google Apps Script** — berisi scriptlet
+> server-side (`<?= userEmail ?>`, `<?!= include(...) ?>`) yang hanya dirender oleh Apps Script,
+> sehingga **tidak bisa** ditayangkan di GitHub Pages. URL Pages hanya untuk pratinjau tampilan;
+> aplikasi asli tetap berjalan sebagai Web App (lihat `PETUNJUK-DEPLOY.md`).
+
 ## 📊 Dashboard & Monitoring
 
 - **Grafik stok per ruangan/lokasi** — bar chart stok saat ini (agregasi `Jumlah Total` Master Inventory berdasarkan `Lokasi Penyimpanan`) di Dashboard.
@@ -86,7 +98,7 @@ Saat popup **Cetak/PDF** atau **CSV** dibuka, tema efektif dihitung ulang dari *
 ## 🔍 Validasi Otomatis & Git pre-commit hook
 
 **`node scripts/validate.js`** — 47 cek statis (selesai <1 detik) yang memblokir `git commit` bila ada regresi.
-**`node scripts/test-form-simas.js`** — tes otomatis alur form (Aset Masuk/Keluar) & validasi periode filter laporan, dengan menjalankan logika demo di Node + DOM mock: aset baru, stok bertambah, validasi, stok tak cukup, distribusi ke ruangan, dan rentang periode (43 cek).
+**`node scripts/test-form-simas.js`** — tes otomatis alur form (Aset Masuk/Keluar), validasi periode filter laporan, hapus aset, dan daftar ruangan, dengan menjalankan logika demo di Node + DOM mock: aset baru, stok bertambah, validasi, stok tak cukup, distribusi ke ruangan, rentang periode, dan ruanganList_ (54 cek).
 
 Daftar cek statis validate.js:
 
@@ -132,7 +144,7 @@ Daftar cek statis validate.js:
 
 **Pre-commit hook** menjalankan validasi otomatis setiap `git commit`:
 - **`node scripts/validate.js`** (47 cek statis) **dan** **`node scripts/test-form-simas.js`**
-  (43 cek alur simpan form & filter periode) dijalankan berurutan — commit diblokir jika salah satu gagal.
+  (54 cek alur simpan form, filter periode, hapus aset, ruangan) dijalankan berurutan — commit diblokir jika salah satu gagal.
 - Aktifkan (sekali per clone): `node scripts/install-git-hooks.js`
   (menolak menimpa hooks lain kecuali dengan `--force`)
 - Lewati paksa (tidak disarankan): `git commit --no-verify`

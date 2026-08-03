@@ -1,29 +1,48 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# Deploy demo statis SIASIK ke GitHub Pages.
+#
+# PENTING: repo ini berisi APLIKASI Google Apps Script (Index.html, script.html,
+# styles.html) yang TIDAK bisa di-render di GitHub Pages karena memakai scriptlet
+# server-side (<?= userEmail ?>, <?!= include(...) ?>). Yang bisa ditayangkan di
+# Pages hanyalah DEMO mandiri (SIASIK-Demo.html & AksesDitolak-Demo.html) yang
+# sudah self-contained (semua CSS/JS inline).
+#
+# Alur: (1) job validasi menjalankan validate.js + test-form-simas.js (sama
+# dengan pre-commit hook), (2) bila lulus, deploy folder demo ke Pages.
+name: Deploy demo SIASIK ke GitHub Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
+  validasi:
+    name: Validasi (validate.js + test-form-simas.js)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cek statis
+        run: node scripts/validate.js
+      - name: Tes alur form & filter
+        run: node scripts/test-form-simas.js
+
   deploy:
+    name: Deploy demo ke Pages
+    needs: validasi
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -31,13 +50,48 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Siapkan folder demo
+        run: |
+          mkdir -p _site
+          cp SIASIK-Demo.html _site/SIASIK-Demo.html
+          cp AksesDitolak-Demo.html _site/AksesDitolak-Demo.html
+          cat > _site/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="id">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>SIASIK — RSUD Mimika (Demo)</title>
+            <style>
+              body { font-family: system-ui, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0;
+                     display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+              .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+                      padding: 40px 48px; text-align: center; max-width: 420px; }
+              h1 { font-size: 1.25rem; margin: 0 0 8px; }
+              p { color: #94a3b8; margin: 0 0 24px; }
+              a.btn { display: block; background: #0d9488; color: #fff; text-decoration: none;
+                      padding: 12px 20px; border-radius: 10px; margin: 8px 0; font-weight: 600; }
+              a.btn:hover { background: #0f766e; }
+              a.btn.ghost { background: transparent; border: 1px solid #334155; color: #cbd5e1; }
+              a.btn.ghost:hover { background: #334155; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>🏥 SIASIK — Sistem Informasi Aset & Inventaris Klinik</h1>
+              <p>RSUD Mimika — Demo interaktif (data contoh di browser)</p>
+              <a class="btn" href="SIASIK-Demo.html">Buka Demo Aplikasi</a>
+              <a class="btn ghost" href="AksesDitolak-Demo.html">Halaman Akses Ditolak</a>
+            </div>
+          </body>
+          </html>
+          EOF
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
+          path: '_site'
+      - name: Deploy ke GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

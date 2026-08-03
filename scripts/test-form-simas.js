@@ -321,5 +321,41 @@ seksi('T9 periode filter', function () {
   sandbox.FILTER.keluarDari = ''; sandbox.FILTER.keluarSampai = '';
 });
 
+/* --- Tes 10: hapus aset (hapusAset_) --- */
+seksi('T10 hapus aset', function () {
+  const hapus = sandbox.MASTER.find((a) => a['Nama Aset'] === 'Printer Uji Otomatis'); // aset dari T1
+  if (!hapus) { cek('T10 hapus: aset T1 ditemukan', false); return; }
+  const jml10 = sandbox.MASTER.length;
+  const r10 = sandbox.hapusAset_(hapus['Kode Aset']);
+  cek('T10 hapus: sukses', r10.sukses === true, r10.pesan);
+  cek('T10 hapus: MASTER berkurang 1', sandbox.MASTER.length === jml10 - 1,
+    jml10 + ' -> ' + sandbox.MASTER.length);
+  cek('T10 hapus: aset tidak ada lagi', !sandbox.MASTER.some((a) => a['Nama Aset'] === 'Printer Uji Otomatis'));
+  cek('T10 hapus: tersimpan ke localStorage',
+    !JSON.parse(localStorage.getItem('siasik_demo_master') || '[]').some((a) => a['Nama Aset'] === 'Printer Uji Otomatis'));
+  // kode aset yang tidak ada -> ditolak, data tidak berubah
+  const jml10b = sandbox.MASTER.length;
+  const r10b = sandbox.hapusAset_('AST-9999');
+  cek('T10 hapus: aset tak ada ditolak', r10b.sukses === false && /tidak ditemukan/i.test(r10b.pesan), r10b.pesan);
+  cek('T10 hapus: data tidak berubah', sandbox.MASTER.length === jml10b);
+});
+
+/* --- Tes 10 (lanjutan): daftar ruangan (ruanganList_) --- */
+seksi('T10 ruangan list', function () {
+  // tambahkan ruangan BARU lewat transaksi keluar nyata (di luar SARAN_RUANGAN)
+  const asetK = sandbox.MASTER.find((a) => Number(a['Jumlah Total']) > 50); // stok besar (mis. Parasetamol)
+  if (!asetK) { cek('T10 ruangan: aset stok>50 ditemukan', false); return; }
+  const rK = simpanKeluar({ kodeAset: asetK['Kode Aset'], jumlah: 1, ruangan: 'Poliklinik Umum',
+    penerima: 'dr. Poli Umum', tanggal: '2026-08-04' });
+  cek('T10 ruangan: keluar ke ruangan baru sukses', rK.sukses === true, rK.pesan);
+  const daftar = sandbox.ruanganList_();
+  cek('T10 ruangan: array ter-sort', daftar.every((v, i) => i === 0 || daftar[i - 1] <= v));
+  cek('T10 ruangan: unik', new Set(daftar).size === daftar.length);
+  const saran = ['IGD', 'Rawat Inap', 'Rawat Jalan', 'Kamar Operasi', 'ICU', 'Radiologi', 'Laboratorium', 'Farmasi', 'Gudang Alkes', 'Gizi'];
+  cek('T10 ruangan: memuat semua SARAN_RUANGAN', saran.every((r) => daftar.includes(r)));
+  cek('T10 ruangan: memuat lokasi dari MASTER (Gudang Farmasi)', daftar.includes('Gudang Farmasi'));
+  cek('T10 ruangan: memuat ruangan baru dari KELUAR (Poliklinik Umum)', daftar.includes('Poliklinik Umum'));
+});
+
 console.log('\n' + (gagal === 0 ? '✅ SEMUA TES FORM LULUS' : '❌ ' + gagal + ' tes gagal'));
 process.exit(gagal === 0 ? 0 : 1);

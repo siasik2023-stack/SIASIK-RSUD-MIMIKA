@@ -18,6 +18,7 @@
 | `scripts/validate.js` | (Opsional) Validasi sintaks & konsistensi — jalankan dengan `node scripts/validate.js` |
 | `SIASIK-Demo.html` | **Demo offline**: buka langsung di browser untuk mempratinjau tampilan & fitur ekspor (data contoh di localStorage, bukan bagian dari proyek Apps Script) |
 | `AksesDitolak-Demo.html` | **Demo halaman Akses Ditolak**: pratinjau langsung di browser (termasuk mode terang/gelap via toggle tema); bisa dibuka dari banner demo SIASIK |
+| `.github/workflows/static.yml` | **CI + GitHub Pages (opsional)**: pada tiap push ke `main` menjalankan `validate.js` + `test-form-simas.js`, lalu men-deploy **demo statis** (`SIASIK-Demo.html`, `AksesDitolak-Demo.html`) ke GitHub Pages. Aplikasi asli tidak bisa di-deploy ke Pages karena memakai scriptlet Apps Script |
 
 ---
 
@@ -92,7 +93,7 @@ Setiap kali mengubah `Code.gs` / HTML:
 Setiap **commit** ke repo git otomatis menjalankan **dua lapis validasi** — jika ada regresi,
 **commit diblokir** sampai diperbaiki:
 1. `node scripts/validate.js` — 47 cek statis (selesai <1 detik).
-2. `node scripts/test-form-simas.js` — 43 cek alur simpan Aset Masuk/Keluar & filter periode (DOM mock, tanpa browser).
+2. `node scripts/test-form-simas.js` — 54 cek alur simpan Aset Masuk/Keluar, filter periode, hapus aset, & daftar ruangan (DOM mock, tanpa browser).
 
 - **Aktifkan** (sekali saja per clone): `node scripts/install-git-hooks.js`
   (menyetel `core.hooksPath` ke folder hooks ter-versioning `scripts/git-hooks` — tidak perlu
@@ -103,7 +104,7 @@ Setiap **commit** ke repo git otomatis menjalankan **dua lapis validasi** — ji
   logika asli demo (`SIASIK-Demo.html`) di Node dengan DOM mock untuk menguji alur simpan
   **Aset Masuk/Keluar**: aset baru, stok bertambah, validasi (nama kosong, jumlah ≤ 0),
   handler form lengkap, penolakan saat stok tidak mencukupi, distribusi ke ruangan,
-  dan validasi rentang periode laporan (43 cek).
+  dan validasi rentang periode laporan, hapus aset, serta daftar ruangan (54 cek).
 - **Uji manual**: `bash scripts/git-hooks/pre-commit`
 - **Lewati paksa** (tidak disarankan): `git commit --no-verify`
 - **Copot**: `git config --unset core.hooksPath`
