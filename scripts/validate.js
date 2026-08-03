@@ -5,6 +5,11 @@
 // pola popup Cetak/CSV yang sinkron dengan tema global (temaGelapUntukPopup_),
 // kesinkronan panggilan google.script.run ↔ fungsi di Code.gs,
 // dan aksesibilitas tombol ikon (title/aria-label).
+//
+// PENTING — SINKRONISASI DOKUMENTASI: jumlah cek (saat ini 46) dan daftarnya
+// didokumentasikan di PETUNJUK-DEPLOY.md dan README.md (bagian "Daftar cek
+// validate.js"). Saat menambah/mengubah/menghapus cek, perbarui JUGA kedua
+// dokumen tersebut (jumlahnya tercantum di kalimat pembuka "46 cek").
 'use strict';
 
 const fs = require('fs');
