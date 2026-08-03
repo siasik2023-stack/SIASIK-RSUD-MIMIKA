@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIASIK — Akses Ditolak</title>
+  <script>
+    // Terapkan tema sebelum render pertama (cegah kedipan saat mode gelap)
+    // Urutan prioritas: preferensi lokal (siasik_tema) → cache default global (siasik_tema_global) → sistem
+    try {
+      var _t = localStorage.getItem('siasik_tema');
+      var _pilih;
+      if (_t === 'terang' || _t === 'gelap' || _t === 'auto') _pilih = _t;
+      else {
+        var _gt = localStorage.getItem('siasik_tema_global');
+        if (_gt === 'terang' || _gt === 'gelap' || _gt === 'auto') _pilih = _gt;
+      }
+      var _auto = !_pilih || _pilih === 'auto';
+      var _g = _auto
+        ? !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        : _pilih === 'gelap';
+      document.documentElement.setAttribute('data-theme', _g ? 'dark' : 'light');
+    } catch (e) {}
+  </script>
+  <style>
+    :root {
+      --teal-700: #0f766e;
+      --teal-600: #0d9488;
+      --teal-100: #ccfbf1;
+      --slate-900: #0f172a;
+      --slate-600: #475569;
+      --slate-400: #94a3b8;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --surface: #ffffff;
+      --merah-muda: #fee2e2;
+      color-scheme: light;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --slate-50: #0f172a;
+      --slate-100: #0f172a;
+      --slate-200: #334155;
+      --slate-400: #94a3b8;
+      --slate-600: #94a3b8;
+      --slate-900: #f1f5f9;
+      --teal-100: rgba(45, 212, 191, .14);
+      --surface: #1e293b;
+      --merah-muda: rgba(239, 68, 68, .16);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+      background: linear-gradient(160deg, var(--slate-100) 0%, var(--teal-100) 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .kartu {
+      background: var(--surface);
+      border: 1px solid var(--slate-200);
+      border-radius: 18px;
+      box-shadow: 0 24px 64px rgba(15, 23, 42, .12);
+      padding: 40px 36px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+      animation: muncul .35s ease;
+    }
+    @keyframes muncul { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .ikon {
+      width: 68px; height: 68px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      background: var(--merah-muda);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 30px;
+    }
+    h1 { font-size: 20px; font-weight: 800; color: var(--slate-900); margin-bottom: 10px; }
+    p { font-size: 14px; color: var(--slate-600); line-height: 1.6; }
+    p.tambahan { margin-top: 14px; font-size: 12.5px; color: var(--slate-400); }
+    .tombol {
+      display: inline-block;
+      margin-top: 22px;
+      background: var(--teal-600);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13.5px;
+      padding: 12px 26px;
+      border-radius: 10px;
+      transition: background .15s;
+    }
+    .tombol:hover { background: var(--teal-700); }
+  </style>
+</head>
+<body>
+  <div class="kartu">
+    <div class="ikon">🚫</div>
+    <h1>Akses Ditolak</h1>
+    <p>
+      Aplikasi <strong>SIASIK — RSUD Mimika</strong> hanya dapat diakses oleh akun Google yang terdaftar.
+      Silakan <strong>masuk (login) dengan akun Google Anda</strong>. Jika tetap tidak bisa diakses,
+      hubungi admin SIASIK untuk didaftarkan.
+    </p>
+    <a class="tombol" href="https://accounts.google.com" target="_top">Masuk dengan Google</a>
+    <p class="tambahan">Sistem Informasi Aset dan Logistik &middot; RSUD Mimika</p>
+  </div>
+  <script>
+    // Sinkronkan tema dengan default global (Script Properties) bila belum ada preferensi lokal
+    try {
+      google.script.run
+        .withSuccessHandler(function (globalTema) {
+          globalTema = String(globalTema || '');
+          if (globalTema === 'terang' || globalTema === 'gelap' || globalTema === 'auto') {
+            try { localStorage.setItem('siasik_tema_global', globalTema); } catch (e) {}
+          } else {
+            try { localStorage.removeItem('siasik_tema_global'); } catch (e) {}
+          }
+          var punyaLokal = false;
+          try { punyaLokal = !!localStorage.getItem('siasik_tema'); } catch (e) {}
+          if (!punyaLokal) {
+            var temaG;
+            if (globalTema === 'terang' || globalTema === 'gelap') temaG = globalTema === 'gelap' ? 'dark' : 'light';
+            else temaG = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', temaG);
+          }
+        })
+        .withFailureHandler(function () {})
+        .getTemaGlobal();
+    } catch (e) {}
+  </script>
+</body>
+</html>

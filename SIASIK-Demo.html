@@ -1,0 +1,2265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIASIK — Demo (RSUD Mimika)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    // Terapkan tema sebelum render pertama (cegah kedipan saat mode gelap)
+    // Urutan prioritas: preferensi lokal (siasik_tema) → cache default global (siasik_tema_global) → sistem
+    try {
+      var _t = localStorage.getItem('siasik_tema');
+      var _pilih;
+      if (_t === 'terang' || _t === 'gelap' || _t === 'auto') _pilih = _t;
+      else {
+        var _gt = localStorage.getItem('siasik_tema_global');
+        if (_gt === 'terang' || _gt === 'gelap' || _gt === 'auto') _pilih = _gt;
+      }
+      var _auto = !_pilih || _pilih === 'auto';
+      var _g = _auto
+        ? !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        : _pilih === 'gelap';
+      document.documentElement.setAttribute('data-theme', _g ? 'dark' : 'light');
+    } catch (e) {}
+  </script>
+  <style>
+    /* ============ SIASIK — CSS (sama dengan versi Apps Script) ============ */
+    :root {
+      --teal-700: #0f766e;
+      --teal-600: #0d9488;
+      --teal-500: #14b8a6;
+      --teal-100: #ccfbf1;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --hijau: #16a34a;
+      --kuning: #d97706;
+      --merah: #dc2626;
+      --surface: #ffffff;
+      --row-border: #eef2f7;
+      --teks-masuk: #15803d;
+      --teks-keluar: #b91c1c;
+      --toast-bg: #0f172a;
+      --shadow: 0 1px 3px rgba(15, 23, 42, .06), 0 8px 24px rgba(15, 23, 42, .05);
+      color-scheme: light;
+    }
+
+    /* Mode gelap */
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --slate-50: #0f172a;
+      --slate-100: #0f172a;
+      --slate-200: #334155;
+      --slate-300: #475569;
+      --slate-400: #64748b;
+      --slate-500: #94a3b8;
+      --slate-600: #94a3b8;
+      --slate-700: #cbd5e1;
+      --slate-800: #e2e8f0;
+      --slate-900: #f1f5f9;
+      --teal-100: rgba(45, 212, 191, .14);
+      --surface: #1e293b;
+      --row-border: #2c3b54;
+      --teks-masuk: #4ade80;
+      --teks-keluar: #f87171;
+      --toast-bg: #0f172a;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .5), 0 10px 28px rgba(0, 0, 0, .35);
+    }
+    [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.8); }
+    [data-theme="dark"] .banner-demo {
+      background: linear-gradient(90deg, #422006, #451a03);
+      border-bottom-color: #78350f;
+      color: #fde68a;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+    }
+    [data-theme="dark"] .banner-demo .btn-outline {
+      background: rgba(120, 53, 15, .35);
+      border-color: #92400e;
+      color: #fde68a;
+    }
+
+    /* Transisi halus saat beralih tema */
+    @media (prefers-reduced-motion: no-preference) {
+      html.tema-bertransisi *,
+      html.tema-bertransisi *::before,
+      html.tema-bertransisi *::after {
+        transition: background-color .35s ease, border-color .35s ease, color .35s ease, box-shadow .35s ease !important;
+      }
+      html.tema-bertransisi .chart-box canvas {
+        animation: temaMuncul .45s ease;
+      }
+      @keyframes temaMuncul {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--slate-100);
+      color: var(--slate-800);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Banner demo */
+    .banner-demo {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 46px;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 18px;
+      background: linear-gradient(90deg, #fffbeb, #fef3c7);
+      border-bottom: 1px solid #fcd34d;
+      color: #78350f;
+      font-size: 12.5px;
+      font-weight: 600;
+      box-shadow: 0 2px 10px rgba(120, 53, 15, .10);
+    }
+    .banner-demo .txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .banner-demo .btn { font-size: 11.5px; padding: 5px 10px; }
+    .banner-demo a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 46px; bottom: 0; left: 0;
+      width: 262px;
+      background: linear-gradient(180deg, #0f172a 0%, #134e4a 130%);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      z-index: 40;
+      transform: translateX(0);
+      transition: transform .25s ease;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; padding: 22px 18px 18px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+    .brand-logo {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+      color: #fff; font-weight: 800; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 16px rgba(13, 148, 136, .35);
+    }
+    .brand-text strong { display: block; font-size: 17px; letter-spacing: .02em; }
+    .brand-text span { display: block; font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+
+    .nav { flex: 1; padding: 14px 10px; overflow-y: auto; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; padding: 11px 14px; margin-bottom: 3px;
+      background: transparent; border: none; border-radius: 10px;
+      color: #cbd5e1; font-family: inherit; font-size: 13.5px; font-weight: 500;
+      cursor: pointer; text-align: left;
+      transition: background .15s, color .15s;
+    }
+    .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; opacity: .85; }
+    .nav-item:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+    .nav-item.active { background: var(--teal-600); color: #fff; box-shadow: 0 6px 16px rgba(13, 148, 136, .35); }
+
+    .sidebar-footer { padding: 14px; border-top: 1px solid rgba(255, 255, 255, .08); }
+    .user-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255, 255, 255, .06); border-radius: 12px; }
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--teal-600); color: #fff; font-weight: 800; font-size: 15px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .user-meta { min-width: 0; }
+    .user-meta strong { display: block; font-size: 12.5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-meta span { display: block; font-size: 10.5px; color: #94a3b8; margin-top: 1px; }
+
+    .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 35; display: none; }
+    .overlay.show { display: block; }
+
+    /* Konten utama */
+    .main { margin-left: 262px; padding: 74px 26px 64px; min-height: 100vh; }
+
+    .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .topbar h1 { font-size: 21px; font-weight: 800; color: var(--slate-900); }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .date-chip, .user-chip-top {
+      background: var(--surface); border: 1px solid var(--slate-200);
+      padding: 7px 13px; border-radius: 999px;
+      font-size: 12.5px; font-weight: 600; color: var(--slate-600);
+    }
+    .tema-btn {
+      height: 40px; padding: 0 14px; border-radius: 999px;
+      border: 1px solid var(--slate-200); background: var(--surface);
+      color: var(--slate-600); font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      flex-shrink: 0; white-space: nowrap; transition: border-color .15s, color .15s, transform .1s;
+    }
+    .tema-btn:hover { border-color: var(--teal-600); color: var(--teal-600); transform: scale(1.04); }
+    .user-chip-top { max-width: 210px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--slate-700); }
+    .hamburger {
+      display: none; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 10px;
+      border: 1px solid var(--slate-200); background: var(--surface); cursor: pointer; color: var(--slate-700);
+    }
+    .hamburger svg { width: 20px; height: 20px; }
+
+    .section { display: none; animation: fadeIn .28s ease; }
+    .section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .card { background: var(--surface); border: 1px solid var(--slate-200); border-radius: 14px; box-shadow: var(--shadow); padding: 20px; }
+    .card + .card, .mt { margin-top: 16px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .card-header h3 { font-size: 14.5px; font-weight: 700; color: var(--slate-900); }
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .chart-box { height: 264px; position: relative; }
+    .chart-box.tall { height: 320px; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 14px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--slate-200); border-radius: 14px; box-shadow: var(--shadow);
+      padding: 16px 18px; display: flex; align-items: center; gap: 14px;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(15, 23, 42, .09); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-icon.hijau { background: #dcfce7; }
+    .stat-icon.biru { background: #dbeafe; }
+    .stat-icon.toska { background: var(--teal-100); }
+    .stat-icon.kuning { background: #fef3c7; }
+    .stat-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--slate-500); margin-bottom: 2px; }
+    .stat-value { display: block; font-size: 26px; font-weight: 800; color: var(--slate-900); line-height: 1.15; }
+
+    .chip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .small-stat { background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 12px; padding: 13px 16px; }
+    .small-stat .l { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--slate-500); }
+    .small-stat .v { display: block; font-size: 21px; font-weight: 800; color: var(--slate-900); margin-top: 2px; }
+
+    .table-wrap { overflow-x: auto; border-radius: 10px; }
+    table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      text-align: left; padding: 10px 12px; background: var(--slate-50);
+      color: var(--slate-500); font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; border-bottom: 1px solid var(--slate-200); white-space: nowrap;
+    }
+    tbody td { padding: 11px 12px; border-bottom: 1px solid var(--row-border); vertical-align: middle; }
+    tbody tr { transition: background .12s; }
+    tbody tr:hover { background: var(--slate-50); }
+    tbody tr:last-child td { border-bottom: none; }
+    td.num, th.num { text-align: right; }
+    .kode {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11.5px; font-weight: 700; background: var(--slate-100);
+      color: var(--slate-700); padding: 3px 8px; border-radius: 6px; white-space: nowrap;
+    }
+    .jumlah-masuk { color: var(--teks-masuk); font-weight: 700; }
+    .jumlah-keluar { color: var(--teks-keluar); font-weight: 700; }
+    .kosong { text-align: center; padding: 34px 12px; color: var(--slate-400); font-size: 13px; }
+
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .pill-hijau { background: #dcfce7; color: #15803d; }
+    .pill-kuning { background: #fef3c7; color: #b45309; }
+    .pill-merah { background: #fee2e2; color: #b91c1c; }
+    .pill-biru { background: #dbeafe; color: #1d4ed8; }
+    .pill-ungu { background: #ede9fe; color: #6d28d9; }
+    .pill-abu { background: var(--slate-100); color: var(--slate-500); }
+
+    .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; letter-spacing: .01em; }
+    .input {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--slate-300); border-radius: 10px;
+      font-size: 13.5px; font-family: inherit; color: var(--slate-800); background: var(--surface);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .input:focus { outline: none; border-color: var(--teal-600); box-shadow: 0 0 0 3px rgba(13, 148, 136, .14); }
+    .input[readonly] { background: var(--slate-50); color: var(--slate-500); }
+    textarea.input { resize: vertical; }
+    .span2 { grid-column: span 2; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .hint { font-size: 11.5px; color: var(--slate-500); }
+
+    .btn {
+      padding: 10px 18px; border-radius: 10px; font-family: inherit; font-weight: 600;
+      font-size: 13.5px; cursor: pointer; border: 1px solid transparent;
+      transition: background .15s, color .15s, border-color .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-primary { background: var(--teal-600); color: #fff; }
+    .btn-primary:hover { background: var(--teal-700); }
+    .btn-outline { background: var(--surface); border-color: var(--slate-300); color: var(--slate-700); }
+    .btn-outline:hover { border-color: var(--teal-600); color: var(--teal-700); }
+    .btn-danger { background: var(--merah); color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-ghost { background: transparent; border-color: var(--slate-200); color: var(--slate-600); }
+    .btn-ghost:hover { background: var(--slate-50); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    .icon-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--slate-200);
+      background: var(--surface); color: var(--slate-500); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .icon-btn svg { width: 15px; height: 15px; }
+    .icon-btn:hover { background: #fee2e2; border-color: #fecaca; color: #b91c1c; }
+
+    .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .toolbar .search { width: 240px; }
+    .toolbar .input[type="date"] { width: 148px; flex: 0 0 auto; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .5); display: none; align-items: center; justify-content: center; z-index: 90; padding: 20px; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--surface); border-radius: 16px; padding: 24px; width: min(430px, 94vw); box-shadow: 0 24px 64px rgba(15, 23, 42, .3); animation: pop .2s ease; }
+    @keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal h3 { font-size: 16px; font-weight: 800; color: var(--slate-900); margin-bottom: 8px; }
+    .modal p { font-size: 13.5px; color: var(--slate-600); line-height: 1.55; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+    #toastWrap { position: fixed; right: 20px; bottom: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; max-width: min(360px, 90vw); }
+    .toast {
+      background: var(--toast-bg); color: #fff; padding: 12px 18px; border-radius: 11px;
+      font-size: 13px; font-weight: 500; box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+      opacity: 0; transform: translateY(10px); transition: opacity .25s, transform .25s;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    .toast.sukses { background: #15803d; }
+    .toast.error { background: #b91c1c; }
+
+    @media print {
+      .sidebar, .overlay, .topbar, #toastWrap, .modal-overlay, .banner-demo,
+      .card-header .btn, .icon-btn, .toolbar .input { display: none !important; }
+      .main { margin: 0; padding: 0; }
+      body { background: #fff; }
+      .card { border: none; box-shadow: none; padding: 0; }
+      .table-wrap { overflow: visible; }
+    }
+
+    @media (max-width: 1024px) {
+      .form-grid { grid-template-columns: repeat(2, 1fr); }
+      .span2 { grid-column: span 2; }
+    }
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); box-shadow: 24px 0 60px rgba(0, 0, 0, .35); }
+      .main { margin-left: 0; padding: 64px 16px 40px; }
+      .hamburger { display: inline-flex; }
+      .card-grid { grid-template-columns: 1fr; }
+      .date-chip { display: none; }
+      .user-chip-top { max-width: 130px; }
+    }
+    @media (max-width: 620px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .span2 { grid-column: span 1; }
+      .stat-value { font-size: 22px; }
+      .toolbar .search { width: 100%; }
+      .topbar h1 { font-size: 17px; }
+      .banner-demo { height: auto; min-height: 46px; flex-wrap: wrap; gap: 6px; padding: 6px 12px; }
+      .banner-demo .txt { white-space: normal; line-height: 1.3; }
+      .sidebar { top: 46px; }
+      .main { padding-top: 96px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Banner demo ===== -->
+  <div class="banner-demo">
+    <span>🧪</span>
+    <span class="txt">Mode Demo — data tersimpan di browser (localStorage), bukan Google Sheets. Pratinjau tampilan &amp; fitur ekspor. Grafik membutuhkan koneksi internet.</span>
+    <button class="btn btn-outline btn-sm" onclick="resetDemo_()" title="Kembalikan data contoh">↺ Reset Data</button>
+    <button class="btn btn-outline btn-sm" onclick="hapusSemuaData_()" title="Hapus semua data">🗑 Hapus Semua</button>
+    <a class="btn btn-outline btn-sm" href="AksesDitolak-Demo.html" title="Pratinjau halaman Akses Ditolak (demo)">🚫 Akses Ditolak</a>
+  </div>
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">S</div>
+      <div class="brand-text">
+        <strong>SIASIK</strong>
+        <span>Demo — RSUD Mimika</span>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-section="dashboard" onclick="gantiSection('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-section="master" onclick="gantiSection('master')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Master Inventory
+      </button>
+      <button class="nav-item" data-section="masuk" onclick="gantiSection('masuk')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Aset Masuk
+      </button>
+      <button class="nav-item" data-section="keluar" onclick="gantiSection('keluar')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Aset Keluar
+      </button>
+      <button class="nav-item" data-section="monitoring" onclick="gantiSection('monitoring')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Monitoring Distribusi
+      </button>
+      <button class="nav-item" data-section="laporan" onclick="gantiSection('laporan')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Laporan
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar" id="avatarInitial">D</div>
+        <div class="user-meta">
+          <strong id="sidebarUser">demo@rsudmimika.id</strong>
+          <span>Pengguna demo</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
+
+  <!-- ===== Konten utama ===== -->
+  <main class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()" aria-label="Buka menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 id="pageTitle">Dashboard</h1>
+      <div class="topbar-right">
+        <span class="date-chip" id="tanggalHariIni"></span>
+        <button class="tema-btn" id="tombolTema" onclick="gantiTema_()" title="Tema: Auto — klik untuk ganti (Auto / Terang / Gelap)" aria-label="Ganti tema: Auto / Terang / Gelap">🌗 Auto</button>
+        <span class="user-chip-top" id="userTop">demo@rsudmimika.id</span>
+      </div>
+    </header>
+
+    <!-- ===== Dashboard ===== -->
+    <section id="section-dashboard" class="section active">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon hijau">📦</div>
+          <div><span class="stat-label">Total Aset</span><strong class="stat-value" id="statTotalAset">0</strong></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon biru">🗃️</div>
+          <div><span class="stat-label">Total Stok</span><strong class="stat-value" id="statTotalStok">0</strong></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon toska">📥</div>
+          <div><span class="stat-label">Masuk Bulan Ini</span><strong class="stat-value" id="statMasukBulan">0</strong></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon kuning">📤</div>
+          <div><span class="stat-label">Keluar Bulan Ini</span><strong class="stat-value" id="statKeluarBulan">0</strong></div>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-header"><h3>Komposisi Kategori Aset</h3></div>
+          <div class="chart-box"><canvas id="chartKategori"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Distribusi per Ruangan</h3></div>
+          <div class="chart-box"><canvas id="chartDistribusi"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header">
+          <h3>Tren Aset Masuk &amp; Keluar</h3>
+          <div class="toolbar">
+            <span class="hint" id="infoTrenPeriode"></span>
+            <label class="hint" for="fTrenDari">Periode:</label>
+            <input type="date" id="fTrenDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fTrenSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterTren_()" title="Hapus filter periode">✕</button>
+          </div>
+        </div>
+        <div class="chart-box tall"><canvas id="chartTren"></canvas></div>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header">
+          <h3>Aktivitas Terbaru</h3>
+          <div class="toolbar">
+            <button class="btn btn-sm btn-outline" onclick="cetakAktivitas_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporAktivitas_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="gantiSection('monitoring')">Lihat Semua</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Jenis</th><th>Tanggal</th><th>Aset</th><th>Detail</th><th>Jumlah</th><th>Waktu Dicatat</th>
+            </tr></thead>
+            <tbody id="tbodyAktivitas"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Master Inventory ===== -->
+    <section id="section-master" class="section">
+      <div class="card">
+        <div class="card-header wrap">
+          <h3>Master Inventory</h3>
+          <div class="toolbar">
+            <input type="search" id="cariAset" class="input search" placeholder="Cari nama / kode / kategori...">
+            <select id="filterKategori" class="input"></select>
+            <button class="btn btn-outline" onclick="muatMasterAset()" title="Muat ulang">↻</button>
+            <button class="btn btn-outline" onclick="cetakMaster_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-outline" onclick="eksporMaster_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Kode</th><th>Nama Aset</th><th>Kategori</th><th>Lokasi</th><th class="num">Stok</th><th>Satuan</th><th>Kondisi</th><th>Status</th><th>PIC</th><th></th>
+            </tr></thead>
+            <tbody id="tbodyMaster"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Aset Masuk ===== -->
+    <section id="section-masuk" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>Form Input — Aset Masuk</h3>
+          <span class="hint">Pencatatan aset baru masuk ke sistem</span>
+        </div>
+        <form id="formMasuk" class="form-grid" onsubmit="return simpanMasuk(event)">
+          <div class="field"><label for="inTanggal">Tanggal Masuk *</label><input type="date" id="inTanggal" class="input" required></div>
+          <div class="field"><label for="inNamaAset">Nama Aset *</label><input id="inNamaAset" class="input" list="datalistAset" placeholder="Ketik nama / pilih aset lama" autocomplete="off" required></div>
+          <datalist id="datalistAset"></datalist>
+          <div class="field"><label for="inKategori">Kategori</label><input id="inKategori" class="input" placeholder="cth: Alat Medis"></div>
+          <div class="field"><label for="inSpesifikasi">Spesifikasi / Merk</label><input id="inSpesifikasi" class="input" placeholder="Merk, model, daya..."></div>
+          <div class="field"><label for="inLokasi">Lokasi Penyimpanan</label><input id="inLokasi" class="input" placeholder="cth: Gudang Alkes"></div>
+          <div class="field"><label for="inJumlah">Jumlah *</label><input type="number" id="inJumlah" class="input" min="1" step="1" required></div>
+          <div class="field"><label for="inSatuan">Satuan</label><input id="inSatuan" class="input" placeholder="unit / buah / box"></div>
+          <div class="field"><label for="inKondisi">Kondisi</label>
+            <select id="inKondisi" class="input">
+              <option>Baru</option><option>Bekas Layak Pakai</option><option>Rusak Ringan</option><option>Rusak Berat</option>
+            </select>
+          </div>
+          <div class="field"><label for="inAsal">Asal Aset</label><input id="inAsal" class="input" placeholder="cth: DAK / Pembelian / Hibah"></div>
+          <div class="field span2"><label for="inKetMasuk">Keterangan</label><textarea id="inKetMasuk" class="input" rows="2"></textarea></div>
+          <div class="span2 form-actions">
+            <button type="reset" class="btn btn-ghost">Reset</button>
+            <button type="submit" class="btn btn-primary" id="btnSimpanMasuk">Simpan Aset Masuk</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header">
+          <h3>Riwayat Aset Masuk</h3>
+          <div class="toolbar">
+            <label class="hint" for="fMasukDari">Periode:</label>
+            <input type="date" id="fMasukDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fMasukSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterMasuk_()" title="Hapus filter periode">✕</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakMasuk_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporMasuk_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="muatRiwayatMasuk()" title="Muat ulang">↻</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>No.</th><th>Tanggal</th><th>Kode</th><th>Nama Aset</th><th>Kategori</th><th class="num">Jumlah</th><th>Satuan</th><th>Kondisi</th><th>Asal</th><th>Dicatat Oleh</th>
+            </tr></thead>
+            <tbody id="tbodyMasuk"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Aset Keluar ===== -->
+    <section id="section-keluar" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>Form Input — Aset Keluar / Distribusi</h3>
+          <span class="hint">Pendistribusian aset ke ruangan / departemen</span>
+        </div>
+        <form id="formKeluar" class="form-grid" onsubmit="return simpanKeluar(event)">
+          <div class="field"><label for="outTanggal">Tanggal Keluar *</label><input type="date" id="outTanggal" class="input" required></div>
+          <div class="field"><label for="outKode">Pilih Aset *</label>
+            <select id="outKode" class="input" required></select>
+            <span class="hint" id="infoStok"></span>
+          </div>
+          <div class="field"><label for="outJumlah">Jumlah Keluar *</label><input type="number" id="outJumlah" class="input" min="1" step="1" required></div>
+          <div class="field"><label for="outSatuan">Satuan</label><input id="outSatuan" class="input" readonly></div>
+          <div class="field"><label for="outRuangan">Tujuan Ruangan *</label><input id="outRuangan" class="input" list="datalistRuangan" placeholder="cth: IGD" required></div>
+          <datalist id="datalistRuangan"></datalist>
+          <div class="field"><label for="outPenerima">Departemen / Penerima</label><input id="outPenerima" class="input" placeholder="cth: Kepala IGD"></div>
+          <div class="field span2"><label for="outKetKeluar">Keterangan</label><textarea id="outKetKeluar" class="input" rows="2" placeholder="Keperluan distribusi..."></textarea></div>
+          <div class="span2 form-actions">
+            <button type="reset" class="btn btn-ghost">Reset</button>
+            <button type="submit" class="btn btn-primary" id="btnSimpanKeluar">Simpan Aset Keluar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header">
+          <h3>Riwayat Aset Keluar</h3>
+          <div class="toolbar">
+            <label class="hint" for="fKeluarDari">Periode:</label>
+            <input type="date" id="fKeluarDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fKeluarSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterKeluar_()" title="Hapus filter periode">✕</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakKeluar_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporKeluar_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="muatRiwayatKeluar()" title="Muat ulang">↻</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>No.</th><th>Tanggal</th><th>Kode</th><th>Nama Aset</th><th class="num">Jumlah</th><th>Satuan</th><th>Ruangan</th><th>Penerima</th><th>Keterangan</th><th>Dicatat Oleh</th>
+            </tr></thead>
+            <tbody id="tbodyKeluar"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Monitoring Distribusi ===== -->
+    <section id="section-monitoring" class="section">
+      <div class="card">
+        <div class="card-header wrap">
+          <h3>Monitoring Distribusi</h3>
+          <div class="toolbar">
+            <label class="hint" for="filterRuangan">Ruangan:</label>
+            <select id="filterRuangan" class="input"></select>
+            <label class="hint" for="fMonDari">Periode:</label>
+            <input type="date" id="fMonDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fMonSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterMon_()" title="Hapus filter periode">✕</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakDistribusi_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporDistribusi_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+          </div>
+        </div>
+        <div class="chip-grid">
+          <div class="small-stat"><span class="l">Total Unit Keluar</span><span class="v" id="monTotalUnit">0</span></div>
+          <div class="small-stat"><span class="l">Jumlah Transaksi</span><span class="v" id="monTransaksi">0</span></div>
+          <div class="small-stat"><span class="l">Ruangan Tujuan</span><span class="v" id="monRuangan">0</span></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>No.</th><th>Tanggal</th><th>Kode</th><th>Nama Aset</th><th class="num">Jumlah</th><th>Satuan</th><th>Ruangan</th><th>Penerima</th><th>Keterangan</th><th>Dicatat Oleh</th>
+            </tr></thead>
+            <tbody id="tbodyDistribusi"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header"><h3>Rekapitulasi Distribusi per Ruangan</h3></div>
+        <div class="chart-box tall"><canvas id="chartDistribusiMon"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ===== Laporan terpusat ===== -->
+    <section id="section-laporan" class="section">
+      <div class="card">
+        <div class="card-header wrap">
+          <h3>Laporan Rekapitulasi</h3>
+          <div class="toolbar">
+            <span class="hint" id="infoLapPeriode"></span>
+            <label class="hint" for="fLapDari">Periode:</label>
+            <input type="date" id="fLapDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fLapSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterLap_()" title="Hapus filter periode">✕</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakLaporanGabungan_()" title="Cetak seluruh rekap dalam satu dokumen">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporLaporanGabungan_()" title="Unduh seluruh rekap sebagai CSV">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="muatLaporan()" title="Muat ulang">↻</button>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-icon hijau">📦</div>
+            <div><span class="stat-label">Total Aset</span><strong class="stat-value" id="lapTotalAset">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon biru">🗃️</div>
+            <div><span class="stat-label">Total Stok</span><strong class="stat-value" id="lapTotalStok">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon toska">📥</div>
+            <div><span class="stat-label">Aset Masuk (Periode)</span><strong class="stat-value" id="lapMasukPeriode">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon kuning">📤</div>
+            <div><span class="stat-label">Aset Keluar (Periode)</span><strong class="stat-value" id="lapKeluarPeriode">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon toska">🧾</div>
+            <div><span class="stat-label">Transaksi Masuk</span><strong class="stat-value" id="lapTransaksiMasuk">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon kuning">🧾</div>
+            <div><span class="stat-label">Transaksi Keluar</span><strong class="stat-value" id="lapTransaksiKeluar">0</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-header"><h3>1. Stok per Kategori</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Kategori</th><th class="num">Jumlah Stok</th><th class="num">Jenis Aset</th></tr></thead>
+              <tbody id="tbodyLapStok"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>2. Aset Masuk per Kategori</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Kategori</th><th class="num">Jumlah Masuk</th><th class="num">Transaksi</th></tr></thead>
+              <tbody id="tbodyLapMasuk"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>3. Aset Keluar per Ruangan</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Ruangan</th><th class="num">Jumlah Keluar</th><th class="num">Transaksi</th></tr></thead>
+              <tbody id="tbodyLapKeluar"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>4. Tren Bulanan</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Bulan</th><th class="num">Aset Masuk</th><th class="num">Aset Keluar</th></tr></thead>
+              <tbody id="tbodyLapTren"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Modal konfirmasi ===== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3 id="modalTitle">Konfirmasi</h3>
+      <p id="modalBody"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="tutupModal_()">Batal</button>
+        <button class="btn btn-danger" id="modalConfirmBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastWrap"></div>
+
+  <script>
+    /* ============================================================
+       SIASIK — DEMO: seluruh logika berjalan di browser (localStorage)
+       Menggantikan google.script.run dengan lapisan data lokal.
+       ============================================================ */
+
+    'use strict';
+
+    var USER_EMAIL = 'demo@rsudmimika.id';
+    var STOK_MINIMUM = 5;
+    var SARAN_RUANGAN = ['IGD', 'Rawat Inap', 'Rawat Jalan', 'Kamar Operasi', 'ICU', 'Radiologi', 'Laboratorium', 'Farmasi', 'Gudang Alkes', 'Gizi'];
+
+    var HEADER_MASTER = ['Kode Aset', 'Nama Aset', 'Kategori', 'Spesifikasi', 'Lokasi Penyimpanan', 'Jumlah Total', 'Satuan', 'Kondisi', 'Tanggal Masuk', 'Status', 'PIC'];
+    var HEADER_MASUK = ['No. Transaksi', 'Tanggal Masuk', 'Kode Aset', 'Nama Aset', 'Kategori', 'Jumlah', 'Satuan', 'Kondisi', 'Asal Aset', 'Keterangan', 'Dicatat Oleh', 'Waktu Dicatat'];
+    var HEADER_KELUAR = ['No. Transaksi', 'Tanggal Keluar', 'Kode Aset', 'Nama Aset', 'Kategori', 'Jumlah', 'Satuan', 'Tujuan Ruangan', 'Departemen / Penerima', 'Keterangan', 'Dicatat Oleh', 'Waktu Dicatat'];
+
+    var KUNCI_STORE = { master: 'siasik_demo_master', masuk: 'siasik_demo_masuk', keluar: 'siasik_demo_keluar' };
+
+    var MASTER = [];
+    var MASUK = [];
+    var KELUAR = [];
+    var DA = { master: [], daftarAset: [], ruangan: [] };
+    var DATA_LAPORAN = { masuk: [], keluar: [], distribusi: [], aktivitas: [], laporan: null };
+    var FILTER = { masukDari: '', masukSampai: '', keluarDari: '', keluarSampai: '', monDari: '', monSampai: '', trenDari: '', trenSampai: '', lapDari: '', lapSampai: '' };
+    var charts = {};
+    var aksiModal_ = null;
+
+    var PALETTE = ['#0f766e', '#0891b2', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
+
+    var TEMA = 'auto'; // 'auto' | 'terang' | 'gelap'
+    var TEMA_GELAP = false; // tema yang benar-benar diterapkan (dipakai grafik)
+
+    function temaSistemGelap_() {
+      return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    function temaTerapanGelap_() {
+      if (TEMA === 'terang') return false;
+      if (TEMA === 'gelap') return true;
+      return temaSistemGelap_();
+    }
+
+    (function initTema_() {
+      try {
+        var tersimpan = localStorage.getItem('siasik_tema');
+        if (tersimpan === 'terang' || tersimpan === 'gelap' || tersimpan === 'auto') TEMA = tersimpan;
+        else {
+          // Tidak ada preferensi lokal → pakai cache default global (dari Script Properties)
+          var cache = localStorage.getItem('siasik_tema_global');
+          if (cache === 'terang' || cache === 'gelap' || cache === 'auto') TEMA = cache;
+        }
+      } catch (e) {}
+      TEMA_GELAP = temaTerapanGelap_();
+      document.documentElement.setAttribute('data-theme', TEMA_GELAP ? 'dark' : 'light');
+      // Ikuti perubahan tema sistem secara real-time saat mode Auto
+      if (window.matchMedia) {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var onGanti = function () { if (TEMA === 'auto' && temaTerapanGelap_() !== TEMA_GELAP) { mulaiTransisiTema_(); terapkanTema_(true); } };
+        if (mq.addEventListener) mq.addEventListener('change', onGanti);
+        else if (mq.addListener) mq.addListener(onGanti); // Safari lama
+      }
+    })();
+
+    // Transisi halus: kelas tema-bertransisi hanya aktif selama peralihan (dihapus setelah selesai)
+    function mulaiTransisiTema_() {
+      var d = document.documentElement;
+      d.classList.add('tema-bertransisi');
+      clearTimeout(window._timerTema);
+      window._timerTema = setTimeout(function () { d.classList.remove('tema-bertransisi'); }, 480);
+    }
+
+    var JUDUL_SEKSI = {
+      dashboard: 'Dashboard', master: 'Master Inventory', masuk: 'Aset Masuk',
+      keluar: 'Aset Keluar', monitoring: 'Monitoring Distribusi', laporan: 'Laporan Rekapitulasi'
+    };
+
+    function $(id) { return document.getElementById(id); }
+
+    function esc_(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function hariIni_() {
+      var d = new Date();
+      return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+
+    function formatWaktu_(d) {
+      function p(n) { return (n < 10 ? '0' : '') + n; }
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+
+    // Perbandingan tanggal string yyyy-MM-dd (urut leksikografis = urutan kronologis)
+    function dalamPeriode_(tgl, dari, sampai) {
+      tgl = String(tgl || '');
+      if (!tgl) return true;
+      if (dari && tgl < dari) return false;
+      if (sampai && tgl > sampai) return false;
+      return true;
+    }
+
+    function labelPeriode_(dari, sampai) {
+      if (dari && sampai) return 'Periode ' + dari + ' s.d. ' + sampai;
+      if (dari) return 'Periode sejak ' + dari;
+      if (sampai) return 'Periode s.d. ' + sampai;
+      return '';
+    }
+
+    function toast_(pesan, tipe) {
+      var wrap = $('toastWrap');
+      var el = document.createElement('div');
+      el.className = 'toast ' + (tipe || 'info');
+      el.textContent = pesan;
+      wrap.appendChild(el);
+      setTimeout(function () { el.classList.add('show'); }, 10);
+      setTimeout(function () {
+        el.classList.remove('show');
+        setTimeout(function () { el.remove(); }, 300);
+      }, 3800);
+    }
+
+    function setTombol_(id, loading) {
+      var b = $(id);
+      if (!b) return;
+      if (loading) { b.dataset.teks = b.textContent; b.disabled = true; b.textContent = 'Menyimpan...'; }
+      else { b.disabled = false; b.textContent = b.dataset.teks || 'Simpan'; }
+    }
+
+    /* ================= Lapisan data (localStorage) ================= */
+
+    function muatPenyimpanan_() {
+      try {
+        MASTER = JSON.parse(localStorage.getItem(KUNCI_STORE.master) || 'null');
+        MASUK = JSON.parse(localStorage.getItem(KUNCI_STORE.masuk) || 'null');
+        KELUAR = JSON.parse(localStorage.getItem(KUNCI_STORE.keluar) || 'null');
+      } catch (e) { MASTER = MASUK = KELUAR = null; }
+      if (!Array.isArray(MASTER) || !Array.isArray(MASUK) || !Array.isArray(KELUAR)) buatDataDemo_();
+    }
+
+    function simpanSemua_() {
+      localStorage.setItem(KUNCI_STORE.master, JSON.stringify(MASTER));
+      localStorage.setItem(KUNCI_STORE.masuk, JSON.stringify(MASUK));
+      localStorage.setItem(KUNCI_STORE.keluar, JSON.stringify(KELUAR));
+    }
+
+    function buatDataDemo_() {
+      var now = new Date();
+      function tgl(hariLalu) {
+        var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - hariLalu);
+        return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+      }
+      function waktu(hariLalu, jam) {
+        var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - hariLalu, jam, 12);
+        return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+      }
+      var A = 'admin@rsudmimika.id', B = 'budi@rsudmimika.id';
+
+      function kategoriDariMaster_(kode) {
+        for (var i = 0; i < MASTER.length; i++) {
+          if (MASTER[i]['Kode Aset'] === kode) return MASTER[i]['Kategori'];
+        }
+        return '';
+      }
+
+      MASTER = [
+        ['AST-0001', 'Stetoskop Littmann Classic III', 'Alat Medis', 'Littmann Classic III, 54 cm', 'Gudang Alkes', 12, 'unit', 'Baru', tgl(170), 'Tersedia', A],
+        ['AST-0002', 'Tensimeter Digital Omron', 'Alat Medis', 'Omron HEM-8712', 'Gudang Alkes', 8, 'unit', 'Baru', tgl(160), 'Tersedia', A],
+        ['AST-0003', 'Kursi Roda Standar', 'Alat Medis', 'Lipat aluminium, kapasitas 120kg', 'Gudang Alkes', 6, 'unit', 'Bekas Layak Pakai', tgl(140), 'Tersedia', A],
+        ['AST-0004', 'Tempat Tidur Pasien Elektrik', 'Perabot Medis', 'Ranjang elektrik 3 posisi', 'Rawat Inap', 15, 'unit', 'Baru', tgl(120), 'Tersedia', A],
+        ['AST-0005', 'Infusion Pump Terumo', 'Alat Medis', 'Terumo TE-171', 'Gudang Alkes', 4, 'unit', 'Baru', tgl(100), 'Menipis', A],
+        ['AST-0006', 'Laptop Administrasi', 'Elektronik', 'Lenovo ThinkPad E14', 'Kantor Admin', 10, 'unit', 'Baru', tgl(90), 'Tersedia', A],
+        ['AST-0007', 'Printer Laboratorium', 'Elektronik', 'Epson L3210', 'Laboratorium', 3, 'unit', 'Baru', tgl(75), 'Tersedia', A],
+        ['AST-0008', 'Kertas A4 80 gsm', 'ATK', 'PaperOne 80gsm', 'Gudang ATK', 40, 'box', 'Baru', tgl(60), 'Tersedia', B],
+        ['AST-0009', 'Masker Medis 3 Ply', 'Alat Kesehatan Habis Pakai', 'Non-steril, box isi 50', 'Gudang Alkes', 150, 'box', 'Baru', tgl(40), 'Tersedia', B],
+        ['AST-0010', 'Obat Parasetamol 500mg', 'Farmasi', 'Strip isi 10', 'Gudang Farmasi', 200, 'strip', 'Baru', tgl(20), 'Tersedia', B]
+      ].map(function (r) {
+        var o = {};
+        HEADER_MASTER.forEach(function (h, i) { o[h] = r[i]; });
+        return o;
+      });
+
+      var seedMasuk = [
+        [170, 'AST-0001', 'Stetoskop Littmann Classic III', 'Alat Medis', 12, 'unit', 'Baru', 'DAK', 'Pengadaan DAK bidang kesehatan', A],
+        [160, 'AST-0002', 'Tensimeter Digital Omron', 'Alat Medis', 8, 'unit', 'Baru', 'DAK', '', A],
+        [140, 'AST-0003', 'Kursi Roda Standar', 'Alat Medis', 6, 'unit', 'Bekas Layak Pakai', 'Hibah', 'Hibah dari donatur', A],
+        [120, 'AST-0004', 'Tempat Tidur Pasien Elektrik', 'Perabot Medis', 15, 'unit', 'Baru', 'Pembelian', '', A],
+        [100, 'AST-0005', 'Infusion Pump Terumo', 'Alat Medis', 4, 'unit', 'Baru', 'DAK', '', A],
+        [90, 'AST-0006', 'Laptop Administrasi', 'Elektronik', 10, 'unit', 'Baru', 'Pembelian', '', A],
+        [75, 'AST-0007', 'Printer Laboratorium', 'Elektronik', 3, 'unit', 'Baru', 'Pembelian', '', B],
+        [60, 'AST-0008', 'Kertas A4 80 gsm', 'ATK', 40, 'box', 'Baru', 'Anggaran Rutin', '', B],
+        [40, 'AST-0009', 'Masker Medis 3 Ply', 'Alat Kesehatan Habis Pakai', 150, 'box', 'Baru', 'DAK', 'Kebutuhan pandemi', B],
+        [20, 'AST-0010', 'Obat Parasetamol 500mg', 'Farmasi', 200, 'strip', 'Baru', 'Pembelian', '', B]
+      ];
+      MASUK = seedMasuk.map(function (r, i) {
+        return {
+          'No. Transaksi': 'IN-' + ('0000' + (i + 1)).slice(-4),
+          'Tanggal Masuk': tgl(r[0]),
+          'Kode Aset': r[1], 'Nama Aset': r[2], 'Kategori': r[3], 'Jumlah': r[4], 'Satuan': r[5],
+          'Kondisi': r[6], 'Asal Aset': r[7], 'Keterangan': r[8], 'Dicatat Oleh': r[9],
+          'Waktu Dicatat': waktu(r[0], 9)
+        };
+      });
+
+      var seedKeluar = [
+        [165, 'AST-0001', 'Stetoskop Littmann Classic III', 2, 'unit', 'IGD', 'Kepala IGD', 'Peralatan triase', A],
+        [130, 'AST-0004', 'Tempat Tidur Pasien Elektrik', 3, 'unit', 'Rawat Inap', 'Kepala Rawat Inap', '', A],
+        [110, 'AST-0009', 'Masker Medis 3 Ply', 20, 'box', 'IGD', 'Kepala IGD', 'Kebutuhan harian IGD', A],
+        [95, 'AST-0005', 'Infusion Pump Terumo', 1, 'unit', 'Kamar Operasi', 'Kepala Kamar Operasi', '', A],
+        [85, 'AST-0003', 'Kursi Roda Standar', 2, 'unit', 'Rawat Inap', 'Kepala Rawat Inap', '', B],
+        [70, 'AST-0009', 'Masker Medis 3 Ply', 30, 'box', 'Kamar Operasi', 'Kepala Kamar Operasi', '', B],
+        [55, 'AST-0002', 'Tensimeter Digital Omron', 1, 'unit', 'Laboratorium', 'Kepala Laboratorium', '', A],
+        [45, 'AST-0010', 'Obat Parasetamol 500mg', 50, 'strip', 'Farmasi', 'Kepala Instalasi Farmasi', 'Stok depo farmasi', A],
+        [30, 'AST-0008', 'Kertas A4 80 gsm', 10, 'box', 'Radiologi', 'Kepala Radiologi', '', B],
+        [15, 'AST-0009', 'Masker Medis 3 Ply', 25, 'box', 'IGD', 'Kepala IGD', '', B]
+      ];
+      KELUAR = seedKeluar.map(function (r, i) {
+        return {
+          'No. Transaksi': 'OUT-' + ('0000' + (i + 1)).slice(-4),
+          'Tanggal Keluar': tgl(r[0]),
+          'Kode Aset': r[1], 'Nama Aset': r[2], 'Kategori': kategoriDariMaster_(r[1]),
+          'Jumlah': r[3], 'Satuan': r[4], 'Tujuan Ruangan': r[5],
+          'Departemen / Penerima': r[6], 'Keterangan': r[7], 'Dicatat Oleh': r[8],
+          'Waktu Dicatat': waktu(r[0], 14)
+        };
+      });
+
+      simpanSemua_();
+    }
+
+    function resetDemo_() {
+      bukaModal_('Reset Data Demo', 'Kembalikan seluruh data ke contoh awal? Semua perubahan yang Anda buat akan hilang.', function () {
+        buatDataDemo_();
+        muatSemua_();
+        toast_('Data demo berhasil direset.', 'sukses');
+        tutupModal_();
+      });
+    }
+
+    function hapusSemuaData_() {
+      bukaModal_('Hapus Semua Data', 'Hapus seluruh data (contoh &amp; hasil input Anda)?', function () {
+        MASTER = []; MASUK = []; KELUAR = [];
+        simpanSemua_();
+        muatSemua_();
+        toast_('Semua data telah dihapus.', 'sukses');
+        tutupModal_();
+      });
+    }
+
+    /* ================= Logika bisnis (padanan fungsi server) ================= */
+
+    function cariBarisMaster_(nama, kode) {
+      nama = String(nama || '').trim().toLowerCase();
+      kode = String(kode || '').trim().toLowerCase();
+      for (var i = 0; i < MASTER.length; i++) {
+        if ((kode && String(MASTER[i]['Kode Aset']).trim().toLowerCase() === kode) ||
+            (nama && String(MASTER[i]['Nama Aset']).trim().toLowerCase() === nama)) return i;
+      }
+      return -1;
+    }
+
+    function buatKodeAset_() {
+      var max = 0;
+      MASTER.forEach(function (a) {
+        var m = String(a['Kode Aset']).match(/^AST-(\d+)$/);
+        if (m) max = Math.max(max, Number(m[1]));
+      });
+      return 'AST-' + ('0000' + (max + 1)).slice(-4);
+    }
+
+    function buatNoTransaksi_(prefix) {
+      var semua = prefix === 'IN' ? MASUK : KELUAR;
+      var max = 0;
+      var re = new RegExp('^' + prefix + '-(\\d+)$');
+      semua.forEach(function (r) {
+        var m = String(r['No. Transaksi']).match(re);
+        if (m) max = Math.max(max, Number(m[1]));
+      });
+      return prefix + '-' + ('0000' + (max + 1)).slice(-4);
+    }
+
+    function setStatusMaster_(idx) {
+      var jumlah = Number(MASTER[idx]['Jumlah Total']) || 0;
+      if (jumlah <= 0) MASTER[idx]['Status'] = 'Habis';
+      else if (jumlah <= STOK_MINIMUM) MASTER[idx]['Status'] = 'Menipis';
+      else MASTER[idx]['Status'] = 'Tersedia';
+    }
+
+    function simpanAsetMasuk_(data) {
+      var namaAset = String(data.namaAset || '').trim();
+      var jumlah = Number(data.jumlah) || 0;
+      if (!namaAset) return { sukses: false, pesan: 'Nama aset wajib diisi.' };
+      if (jumlah <= 0) return { sukses: false, pesan: 'Jumlah harus lebih dari 0.' };
+      var satuan = String(data.satuan || '').trim() || 'unit';
+      var idx = cariBarisMaster_(namaAset, '');
+      var kode = idx >= 0 ? MASTER[idx]['Kode Aset'] : buatKodeAset_();
+      MASUK.unshift({
+        'No. Transaksi': buatNoTransaksi_('IN'),
+        'Tanggal Masuk': data.tanggal || '', 'Kode Aset': kode, 'Nama Aset': namaAset,
+        'Kategori': data.kategori || '', 'Jumlah': jumlah, 'Satuan': satuan,
+        'Kondisi': data.kondisi || 'Baru', 'Asal Aset': data.asal || '',
+        'Keterangan': data.keterangan || '', 'Dicatat Oleh': USER_EMAIL,
+        'Waktu Dicatat': formatWaktu_(new Date())
+      });
+      if (idx >= 0) {
+        MASTER[idx]['Jumlah Total'] = (Number(MASTER[idx]['Jumlah Total']) || 0) + jumlah;
+        setStatusMaster_(idx);
+      } else {
+        MASTER.unshift({
+          'Kode Aset': kode, 'Nama Aset': namaAset, 'Kategori': data.kategori || '',
+          'Spesifikasi': data.spesifikasi || '', 'Lokasi Penyimpanan': data.lokasi || '',
+          'Jumlah Total': jumlah, 'Satuan': satuan, 'Kondisi': data.kondisi || 'Baru',
+          'Tanggal Masuk': data.tanggal || '', 'Status': 'Tersedia', 'PIC': USER_EMAIL
+        });
+        setStatusMaster_(0);
+      }
+      simpanSemua_();
+      return { sukses: true, pesan: 'Aset masuk "' + namaAset + '" (' + jumlah + ' ' + satuan + ') berhasil disimpan.', kode: kode };
+    }
+
+    function simpanAsetKeluar_(data) {
+      var kode = String(data.kodeAset || '').trim();
+      var jumlah = Number(data.jumlah) || 0;
+      if (!kode) return { sukses: false, pesan: 'Pilih aset terlebih dahulu.' };
+      if (jumlah <= 0) return { sukses: false, pesan: 'Jumlah harus lebih dari 0.' };
+      var idx = cariBarisMaster_('', kode);
+      if (idx < 0) return { sukses: false, pesan: 'Aset tidak ditemukan di Master Inventory.' };
+      var tersedia = Number(MASTER[idx]['Jumlah Total']) || 0;
+      var satuan = String(data.satuan || '').trim() || 'unit';
+      if (jumlah > tersedia) return { sukses: false, pesan: 'Stok tidak mencukupi! Tersedia: ' + tersedia + ' ' + satuan + '.' };
+      KELUAR.unshift({
+        'No. Transaksi': buatNoTransaksi_('OUT'),
+        'Tanggal Keluar': data.tanggal || '', 'Kode Aset': kode,
+        'Nama Aset': MASTER[idx]['Nama Aset'], 'Kategori': MASTER[idx]['Kategori'],
+        'Jumlah': jumlah, 'Satuan': satuan, 'Tujuan Ruangan': data.ruangan || '',
+        'Departemen / Penerima': data.penerima || '', 'Keterangan': data.keterangan || '',
+        'Dicatat Oleh': USER_EMAIL, 'Waktu Dicatat': formatWaktu_(new Date())
+      });
+      MASTER[idx]['Jumlah Total'] = tersedia - jumlah;
+      setStatusMaster_(idx);
+      simpanSemua_();
+      return { sukses: true, pesan: 'Aset keluar ke "' + data.ruangan + '" (' + jumlah + ' ' + satuan + ') berhasil disimpan.', kode: kode };
+    }
+
+    function hapusAset_(kode) {
+      for (var i = 0; i < MASTER.length; i++) {
+        if (String(MASTER[i]['Kode Aset']) === String(kode)) {
+          MASTER.splice(i, 1);
+          simpanSemua_();
+          return { sukses: true, pesan: 'Aset ' + kode + ' berhasil dihapus dari Master Inventory.' };
+        }
+      }
+      return { sukses: false, pesan: 'Aset tidak ditemukan.' };
+    }
+
+    function daftarAset_() {
+      return MASTER.map(function (a) {
+        return {
+          kode: a['Kode Aset'], nama: a['Nama Aset'], stok: Number(a['Jumlah Total']) || 0,
+          satuan: a['Satuan'], kategori: a['Kategori'], lokasi: a['Lokasi Penyimpanan'], kondisi: a['Kondisi']
+        };
+      });
+    }
+
+    function ruanganList_() {
+      var set = {};
+      SARAN_RUANGAN.forEach(function (r) { set[r] = true; });
+      KELUAR.forEach(function (r) { var v = String(r['Tujuan Ruangan'] || '').trim(); if (v) set[v] = true; });
+      MASTER.forEach(function (r) { var v = String(r['Lokasi Penyimpanan'] || '').trim(); if (v) set[v] = true; });
+      return Object.keys(set).sort();
+    }
+
+    function jumlahPadaBulan_(rows, kolomTanggal, bulan) {
+      return rows
+        .filter(function (r) { return String(r[kolomTanggal] || '').substring(0, 7) === bulan; })
+        .reduce(function (s, r) { return s + (Number(r['Jumlah']) || 0); }, 0);
+    }
+
+    function kategoriRingkasan_() {
+      var agg = {};
+      MASTER.forEach(function (r) {
+        var k = String(r['Kategori'] || '').trim() || '(Tanpa Kategori)';
+        agg[k] = agg[k] || { kategori: k, jumlah: 0 };
+        agg[k].jumlah += Number(r['Jumlah Total']) || 0;
+      });
+      return Object.keys(agg).map(function (k) { return agg[k]; }).sort(function (a, b) { return b.jumlah - a.jumlah; });
+    }
+
+    function ringkasanDistribusi_() {
+      var agg = {};
+      KELUAR.forEach(function (r) {
+        var k = String(r['Tujuan Ruangan'] || '').trim() || '(Tanpa Ruangan)';
+        agg[k] = agg[k] || { ruangan: k, totalKeluar: 0, jumlahTransaksi: 0 };
+        agg[k].totalKeluar += Number(r['Jumlah']) || 0;
+        agg[k].jumlahTransaksi += 1;
+      });
+      return Object.keys(agg).map(function (k) { return agg[k]; }).sort(function (a, b) { return b.totalKeluar - a.totalKeluar; });
+    }
+
+    function trenBulanan_(periode, dari, sampai) {
+      var hasil = [];
+      var now = new Date();
+      var awal, akhir;
+      if (dari && sampai) {
+        awal = new Date(Number(dari.substring(0, 4)), Number(dari.substring(5, 7)) - 1, 1);
+        akhir = new Date(Number(sampai.substring(0, 4)), Number(sampai.substring(5, 7)) - 1, 1);
+        if (awal > akhir) { var tukar = awal; awal = akhir; akhir = tukar; }
+      } else {
+        awal = new Date(now.getFullYear(), now.getMonth() - (periode - 1), 1);
+        akhir = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+      var t = new Date(awal.getFullYear(), awal.getMonth(), 1);
+      var maksBulan = 24;
+      while (t <= akhir && hasil.length < maksBulan) {
+        var key = t.getFullYear() + '-' + ('0' + (t.getMonth() + 1)).slice(-2);
+        hasil.push({ bulan: key, masuk: 0, keluar: 0 });
+        t = new Date(t.getFullYear(), t.getMonth() + 1, 1);
+      }
+      MASUK.forEach(function (r) {
+        var tgl = String(r['Tanggal Masuk'] || '');
+        if ((dari && tgl < dari) || (sampai && tgl > sampai)) return;
+        var k = tgl.substring(0, 7);
+        for (var j = 0; j < hasil.length; j++) if (hasil[j].bulan === k) { hasil[j].masuk += Number(r['Jumlah']) || 0; break; }
+      });
+      KELUAR.forEach(function (r) {
+        var tgl = String(r['Tanggal Keluar'] || '');
+        if ((dari && tgl < dari) || (sampai && tgl > sampai)) return;
+        var k = tgl.substring(0, 7);
+        for (var j = 0; j < hasil.length; j++) if (hasil[j].bulan === k) { hasil[j].keluar += Number(r['Jumlah']) || 0; break; }
+      });
+      return hasil;
+    }
+
+    function riwayatTransaksi_(limit) {
+      var semua = [];
+      MASUK.forEach(function (r) {
+        semua.push({ jenis: 'Masuk', tanggal: r['Tanggal Masuk'], kode: r['Kode Aset'], nama: r['Nama Aset'], jumlah: r['Jumlah'], satuan: r['Satuan'], ruangan: '', asal: r['Asal Aset'], keterangan: r['Keterangan'], waktu: r['Waktu Dicatat'] });
+      });
+      KELUAR.forEach(function (r) {
+        semua.push({ jenis: 'Keluar', tanggal: r['Tanggal Keluar'], kode: r['Kode Aset'], nama: r['Nama Aset'], jumlah: r['Jumlah'], satuan: r['Satuan'], ruangan: r['Tujuan Ruangan'], asal: '', keterangan: r['Keterangan'], waktu: r['Waktu Dicatat'] });
+      });
+      semua.sort(function (a, b) { return String(b.waktu).localeCompare(String(a.waktu)); });
+      return semua.slice(0, limit || 10);
+    }
+
+    function hitungDashboard_() {
+      var now = new Date();
+      var bulanIni = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2);
+      return {
+        totalAset: MASTER.length,
+        totalStok: MASTER.reduce(function (s, r) { return s + (Number(r['Jumlah Total']) || 0); }, 0),
+        masukBulanIni: jumlahPadaBulan_(MASUK, 'Tanggal Masuk', bulanIni),
+        keluarBulanIni: jumlahPadaBulan_(KELUAR, 'Tanggal Keluar', bulanIni),
+        kategori: kategoriRingkasan_(),
+        ringkasanDistribusi: ringkasanDistribusi_(),
+        riwayat: riwayatTransaksi_(8)
+      };
+    }
+
+    function dataLaporan_(dari, sampai) {
+      dari = dari || '';
+      sampai = sampai || '';
+      var masukFilter = MASUK.filter(function (r) { return dalamPeriode_(r['Tanggal Masuk'], dari, sampai); });
+      var keluarFilter = KELUAR.filter(function (r) { return dalamPeriode_(r['Tanggal Keluar'], dari, sampai); });
+      function jumlah(rows, kolom) {
+        return rows.reduce(function (s, r) { return s + (Number(r[kolom]) || 0); }, 0);
+      }
+      function rekap(rows, kolomUtama, kolomNilai, labelKosong) {
+        var agg = {};
+        rows.forEach(function (r) {
+          var k = String(r[kolomUtama] || '').trim() || labelKosong || '(Tanpa)';
+          agg[k] = agg[k] || { nama: k, jumlah: 0, transaksi: 0 };
+          agg[k].jumlah += Number(r[kolomNilai]) || 0;
+          agg[k].transaksi += 1;
+        });
+        return Object.keys(agg).map(function (k) { return agg[k]; }).sort(function (a, b) { return b.jumlah - a.jumlah; });
+      }
+      var bulanSet = {};
+      masukFilter.forEach(function (r) { var k = String(r['Tanggal Masuk'] || '').substring(0, 7); if (k) bulanSet[k] = true; });
+      keluarFilter.forEach(function (r) { var k = String(r['Tanggal Keluar'] || '').substring(0, 7); if (k) bulanSet[k] = true; });
+      var tren = Object.keys(bulanSet).sort().map(function (b) { return { bulan: b, masuk: 0, keluar: 0 }; });
+      masukFilter.forEach(function (r) {
+        var k = String(r['Tanggal Masuk'] || '').substring(0, 7);
+        if (!k) return;
+        for (var i = 0; i < tren.length; i++) if (tren[i].bulan === k) { tren[i].masuk += Number(r['Jumlah']) || 0; break; }
+      });
+      keluarFilter.forEach(function (r) {
+        var k = String(r['Tanggal Keluar'] || '').substring(0, 7);
+        if (!k) return;
+        for (var i = 0; i < tren.length; i++) if (tren[i].bulan === k) { tren[i].keluar += Number(r['Jumlah']) || 0; break; }
+      });
+      return {
+        statistik: {
+          totalAset: MASTER.length,
+          totalStok: jumlah(MASTER, 'Jumlah Total'),
+          masukPeriode: jumlah(masukFilter, 'Jumlah'),
+          keluarPeriode: jumlah(keluarFilter, 'Jumlah'),
+          transaksiMasuk: masukFilter.length,
+          transaksiKeluar: keluarFilter.length
+        },
+        stokKategori: rekap(MASTER, 'Kategori', 'Jumlah Total', '(Tanpa Kategori)'),
+        masukKategori: rekap(masukFilter, 'Kategori', 'Jumlah', '(Tanpa Kategori)'),
+        keluarRuangan: rekap(keluarFilter, 'Tujuan Ruangan', 'Jumlah', '(Tanpa Ruangan)'),
+        tren: tren
+      };
+    }
+
+    /* ================= Navigasi ================= */
+    function gantiSection(id) {
+      document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
+      var seksi = $('section-' + id);
+      if (seksi) seksi.classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(function (n) {
+        n.classList.toggle('active', n.getAttribute('data-section') === id);
+      });
+      $('pageTitle').textContent = JUDUL_SEKSI[id] || 'SIASIK';
+      window.scrollTo(0, 0);
+      if (id === 'dashboard') muatDashboard();
+      if (id === 'master') muatMasterAset();
+      if (id === 'monitoring') muatMonitoring();
+      if (id === 'laporan') muatLaporan();
+      toggleSidebar(false);
+    }
+
+    function toggleSidebar(paksa) {
+      var sb = $('sidebar'), ov = $('overlay');
+      var buka = typeof paksa === 'boolean' ? paksa : !sb.classList.contains('open');
+      sb.classList.toggle('open', buka);
+      ov.classList.toggle('show', buka);
+    }
+
+    /* ================= Tema: Auto / Terang / Gelap ================= */
+    function terapkanTema_(gambarUlang) {
+      TEMA_GELAP = temaTerapanGelap_();
+      document.documentElement.setAttribute('data-theme', TEMA_GELAP ? 'dark' : 'light');
+      var b = $('tombolTema');
+      if (b) {
+        var label = TEMA === 'auto' ? 'Auto' : (TEMA === 'gelap' ? 'Gelap' : 'Terang');
+        var ikon = TEMA === 'auto' ? '🌗' : (TEMA === 'gelap' ? '🌙' : '☀️');
+        b.textContent = ikon + ' ' + label;
+        b.setAttribute('title', 'Tema: ' + label + ' — klik untuk ganti (Auto / Terang / Gelap)');
+      }
+      if (gambarUlang) {
+        var dash = $('section-dashboard'), mon = $('section-monitoring');
+        if (dash && dash.classList.contains('active')) muatDashboard();
+        if (mon && mon.classList.contains('active')) muatMonitoring();
+      }
+    }
+
+    function gantiTema_() {
+      var urutan = ['auto', 'terang', 'gelap'];
+      TEMA = urutan[(urutan.indexOf(TEMA) + 1) % urutan.length];
+      try { localStorage.setItem('siasik_tema', TEMA); } catch (e) {}
+      mulaiTransisiTema_();
+      terapkanTema_(true);
+    }
+
+    /* ================= Data bersama ================= */
+    function muatDataBersama_() {
+      DA.daftarAset = daftarAset_();
+      DA.ruangan = ruanganList_();
+      $('datalistAset').innerHTML = DA.daftarAset.map(function (a) {
+        return '<option value="' + esc_(a.nama) + '"></option>';
+      }).join('');
+      $('outKode').innerHTML = '<option value="">— Pilih aset —</option>' + DA.daftarAset.map(function (a) {
+        return '<option value="' + esc_(a.kode) + '" data-satuan="' + esc_(a.satuan || 'unit') + '" data-stok="' + Number(a.stok) + '" data-nama="' + esc_(a.nama) + '">'
+          + esc_(a.kode + ' — ' + a.nama + ' (stok: ' + a.stok + ' ' + (a.satuan || 'unit') + ')') + '</option>';
+      }).join('');
+      isiSatuanKeluar_();
+      $('filterRuangan').innerHTML = '<option value="SEMUA">Semua Ruangan</option>' + DA.ruangan.map(function (r) {
+        return '<option value="' + esc_(r) + '">' + esc_(r) + '</option>';
+      }).join('');
+      $('datalistRuangan').innerHTML = DA.ruangan.map(function (r) {
+        return '<option value="' + esc_(r) + '"></option>';
+      }).join('');
+    }
+
+    /* ================= Dashboard ================= */
+    function muatDashboard() {
+      var d = hitungDashboard_();
+      $('statTotalAset').textContent = d.totalAset;
+      $('statTotalStok').textContent = d.totalStok;
+      $('statMasukBulan').textContent = d.masukBulanIni;
+      $('statKeluarBulan').textContent = d.keluarBulanIni;
+      gambarChartKategori_(d.kategori);
+      gambarChartDistribusi_(d.ringkasanDistribusi, 'chartDistribusi');
+      renderAktivitas_(d.riwayat);
+      muatTrend_();
+    }
+
+    function muatTrend_() {
+      gambarChartTren_(trenBulanan_(6, FILTER.trenDari, FILTER.trenSampai));
+    }
+
+    function terapkanFilterTren_() {
+      terapkanPeriode_('fTrenDari', 'fTrenSampai', 'trenDari', 'trenSampai', muatTrend_);
+      $('infoTrenPeriode').textContent = labelPeriode_(FILTER.trenDari, FILTER.trenSampai);
+    }
+
+    function resetFilterTren_() {
+      $('fTrenDari').value = '';
+      $('fTrenSampai').value = '';
+      FILTER.trenDari = '';
+      FILTER.trenSampai = '';
+      $('infoTrenPeriode').textContent = '';
+      muatTrend_();
+    }
+
+    function renderAktivitas_(rows) {
+      DATA_LAPORAN.aktivitas = rows || [];
+      var tb = $('tbodyAktivitas');
+      if (!rows || !rows.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="kosong">Belum ada aktivitas. Mulai dari menu Aset Masuk / Aset Keluar.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (r) {
+        var badge = r.jenis === 'Masuk' ? '<span class="pill pill-biru">Masuk</span>' : '<span class="pill pill-ungu">Keluar</span>';
+        var detail = r.jenis === 'Keluar' ? esc_(r.ruangan || '-') : esc_('Asal: ' + (r.asal || '-'));
+        var jumlah = r.jenis === 'Masuk' ? '<span class="jumlah-masuk">+' + Number(r.jumlah) + '</span>' : '<span class="jumlah-keluar">-' + Number(r.jumlah) + '</span>';
+        return '<tr>' +
+          '<td>' + badge + '</td>' +
+          '<td>' + esc_(r.tanggal) + '</td>' +
+          '<td><strong>' + esc_(r.nama) + '</strong> <span class="kode">' + esc_(r.kode) + '</span></td>' +
+          '<td>' + detail + '</td>' +
+          '<td>' + jumlah + ' ' + esc_(r.satuan) + '</td>' +
+          '<td>' + esc_(r.waktu) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    /* ================= Grafik ================= */
+    function warnaChart_() {
+      return TEMA_GELAP
+        ? { grid: 'rgba(148, 163, 184, .16)', teks: '#94a3b8', border: '#0f172a' }
+        : { grid: '#f1f5f9', teks: '#64748b', border: '#ffffff' };
+    }
+
+    function buatChart_(id, cfg) {
+      var el = $(id);
+      if (!el || typeof Chart === 'undefined') return;
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(el.getContext('2d'), cfg);
+    }
+
+    function labelBulan_(b) {
+      var p = String(b).split('-');
+      if (p.length < 2) return b;
+      var bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return (bulan[Number(p[1]) - 1] || p[1]) + ' ' + String(p[0]).slice(2);
+    }
+
+    function gambarChartKategori_(kat) {
+      if (!kat || !kat.length) {
+        buatChart_('chartKategori', { type: 'doughnut', data: { labels: ['Belum ada data'], datasets: [{ data: [1], backgroundColor: [TEMA_GELAP ? '#334155' : '#e2e8f0'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        return;
+      }
+      var w = warnaChart_();
+      buatChart_('chartKategori', {
+        type: 'doughnut',
+        data: { labels: kat.map(function (k) { return k.kategori; }), datasets: [{ data: kat.map(function (k) { return k.jumlah; }), backgroundColor: PALETTE, borderWidth: 2, borderColor: w.border }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, font: { size: 11 }, color: w.teks } } } }
+      });
+    }
+
+    function gambarChartDistribusi_(rk, id) {
+      var w = warnaChart_();
+      if (!rk || !rk.length) {
+        buatChart_(id, { type: 'bar', data: { labels: ['Belum ada data'], datasets: [{ data: [0], backgroundColor: [TEMA_GELAP ? '#334155' : '#e2e8f0'] }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { color: w.teks }, grid: { color: w.grid } }, y: { grid: { display: false }, ticks: { color: w.teks } } } } });
+        return;
+      }
+      buatChart_(id, {
+        type: 'bar',
+        data: { labels: rk.map(function (r) { return r.ruangan; }), datasets: [{ data: rk.map(function (r) { return r.totalKeluar; }), backgroundColor: PALETTE.slice(0, rk.length), borderRadius: 6, maxBarThickness: 30 }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return c.raw + ' unit keluar'; } } } },
+          scales: { x: { beginAtZero: true, ticks: { precision: 0, color: w.teks }, grid: { color: w.grid } }, y: { grid: { display: false }, ticks: { font: { size: 11 }, color: w.teks } } }
+        }
+      });
+    }
+
+    function gambarChartTren_(tren) {
+      var w = warnaChart_();
+      if (!tren || !tren.length) {
+        buatChart_('chartTren', { type: 'line', data: { labels: ['Belum ada data'], datasets: [{ label: 'Masuk', data: [0], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,.12)', fill: true, tension: .35 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: w.teks } }, y: { beginAtZero: true, ticks: { color: w.teks }, grid: { color: w.grid } } } } });
+        return;
+      }
+      buatChart_('chartTren', {
+        type: 'line',
+        data: {
+          labels: tren.map(function (t) { return labelBulan_(t.bulan); }),
+          datasets: [
+            { label: 'Aset Masuk', data: tren.map(function (t) { return t.masuk; }), borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,.10)', fill: true, tension: .35, borderWidth: 2.5, pointRadius: 3.5, pointBackgroundColor: '#0d9488' },
+            { label: 'Aset Keluar', data: tren.map(function (t) { return t.keluar; }), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.08)', fill: true, tension: .35, borderWidth: 2.5, pointRadius: 3.5, pointBackgroundColor: '#f59e0b' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, boxHeight: 12, font: { size: 11.5 }, usePointStyle: true, color: w.teks } } },
+          scales: { x: { grid: { display: false }, ticks: { color: w.teks } }, y: { beginAtZero: true, ticks: { precision: 0, color: w.teks }, grid: { color: w.grid } } }
+        }
+      });
+    }
+
+    /* ================= Master Inventory ================= */
+    function muatMasterAset() {
+      DA.master = MASTER;
+      isiFilterKategori_();
+      renderMaster_();
+    }
+
+    function isiFilterKategori_() {
+      var pilihan = $('filterKategori').value;
+      var set = {};
+      DA.master.forEach(function (a) { if (a['Kategori']) set[a['Kategori']] = true; });
+      var kunci = Object.keys(set).sort();
+      $('filterKategori').innerHTML = '<option value="">Semua Kategori</option>' + kunci.map(function (k) {
+        return '<option value="' + esc_(k) + '">' + esc_(k) + '</option>';
+      }).join('');
+      $('filterKategori').value = pilihan;
+    }
+
+    function pillStatus_(s) {
+      var peta = { 'Tersedia': 'pill-hijau', 'Menipis': 'pill-kuning', 'Habis': 'pill-merah' };
+      var k = String(s || '');
+      return '<span class="pill ' + (peta[k] || 'pill-abu') + '">' + esc_(k || '-') + '</span>';
+    }
+
+    function rowsMasterTerfilter_() {
+      var q = ($('cariAset').value || '').toLowerCase();
+      var ktg = $('filterKategori').value;
+      return DA.master.filter(function (a) {
+        var teks = ((a['Nama Aset'] || '') + ' ' + (a['Kode Aset'] || '') + ' ' + (a['Kategori'] || '') + ' ' + (a['Lokasi Penyimpanan'] || '')).toLowerCase();
+        var cocokQ = !q || teks.indexOf(q) >= 0;
+        var cocokK = !ktg || (a['Kategori'] || '') === ktg;
+        return cocokQ && cocokK;
+      });
+    }
+
+    function renderMaster_() {
+      var rows = rowsMasterTerfilter_();
+      var tb = $('tbodyMaster');
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="10" class="kosong">Tidak ada data aset. Tambahkan melalui menu Aset Masuk.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (a) {
+        return '<tr>' +
+          '<td><span class="kode">' + esc_(a['Kode Aset']) + '</span></td>' +
+          '<td><strong>' + esc_(a['Nama Aset']) + '</strong></td>' +
+          '<td>' + esc_(a['Kategori'] || '-') + '</td>' +
+          '<td>' + esc_(a['Lokasi Penyimpanan'] || '-') + '</td>' +
+          '<td class="num"><strong>' + Number(a['Jumlah Total']) + '</strong></td>' +
+          '<td>' + esc_(a['Satuan'] || '-') + '</td>' +
+          '<td>' + esc_(a['Kondisi'] || '-') + '</td>' +
+          '<td>' + pillStatus_(a['Status']) + '</td>' +
+          '<td>' + esc_(a['PIC'] || '-') + '</td>' +
+          '<td><button type="button" class="icon-btn" data-hapus="' + esc_(a['Kode Aset']) + '" title="Hapus aset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function konfirmasiHapus(kode) {
+      var aset = DA.master.find(function (a) { return a['Kode Aset'] === kode; });
+      var nama = aset ? aset['Nama Aset'] : kode;
+      bukaModal_('Hapus Aset', 'Yakin ingin menghapus <strong>' + esc_(nama) + '</strong> (' + esc_(kode) + ') dari Master Inventory? Transaksi yang sudah tercatat tidak ikut terhapus.', function () {
+        var r = hapusAset_(kode);
+        tutupModal_();
+        toast_(r.pesan, r.sukses ? 'sukses' : 'error');
+        if (r.sukses) muatSemua_();
+      });
+    }
+
+    /* ================= Aset Masuk ================= */
+    function isiOtomatisMasuk_() {
+      var nama = $('inNamaAset').value.trim().toLowerCase();
+      var a = DA.daftarAset.find(function (x) { return String(x.nama).toLowerCase() === nama; });
+      if (a) {
+        $('inKategori').value = a.kategori || '';
+        $('inSatuan').value = a.satuan || '';
+        $('inLokasi').value = a.lokasi || '';
+      }
+    }
+
+    function simpanMasuk(e) {
+      e.preventDefault();
+      var data = {
+        tanggal: $('inTanggal').value,
+        namaAset: $('inNamaAset').value.trim(),
+        kategori: $('inKategori').value.trim(),
+        spesifikasi: $('inSpesifikasi').value.trim(),
+        lokasi: $('inLokasi').value.trim(),
+        jumlah: $('inJumlah').value,
+        satuan: $('inSatuan').value.trim(),
+        kondisi: $('inKondisi').value,
+        asal: $('inAsal').value.trim(),
+        keterangan: $('inKetMasuk').value.trim()
+      };
+      if (!data.tanggal) { toast_('Tanggal masuk wajib diisi.', 'error'); return false; }
+      if (!data.namaAset) { toast_('Nama aset wajib diisi.', 'error'); return false; }
+      if (!(Number(data.jumlah) > 0)) { toast_('Jumlah harus lebih dari 0.', 'error'); return false; }
+      setTombol_('btnSimpanMasuk', true);
+      var r = simpanAsetMasuk_(data);
+      setTombol_('btnSimpanMasuk', false);
+      toast_(r.pesan, r.sukses ? 'sukses' : 'error');
+      if (r.sukses) {
+        $('formMasuk').reset();
+        $('inTanggal').value = hariIni_();
+        muatSemua_();
+      }
+      return false;
+    }
+
+    function muatRiwayatMasuk() {
+      DATA_LAPORAN.masuk = MASUK.slice();
+      renderRiwayatMasuk_();
+    }
+
+    function rowsMasukTerfilter_() {
+      return DATA_LAPORAN.masuk.filter(function (r) {
+        return dalamPeriode_(r['Tanggal Masuk'], FILTER.masukDari, FILTER.masukSampai);
+      });
+    }
+
+    function renderRiwayatMasuk_() {
+      var rows = rowsMasukTerfilter_();
+      var tb = $('tbodyMasuk');
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="10" class="kosong">Belum ada transaksi aset masuk untuk periode ini.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (r) {
+        return '<tr>' +
+          '<td><span class="kode">' + esc_(r['No. Transaksi']) + '</span></td>' +
+          '<td>' + esc_(r['Tanggal Masuk']) + '</td>' +
+          '<td>' + esc_(r['Kode Aset']) + '</td>' +
+          '<td><strong>' + esc_(r['Nama Aset']) + '</strong></td>' +
+          '<td>' + esc_(r['Kategori'] || '-') + '</td>' +
+          '<td class="num jumlah-masuk">+' + Number(r['Jumlah']) + '</td>' +
+          '<td>' + esc_(r['Satuan']) + '</td>' +
+          '<td>' + esc_(r['Kondisi'] || '-') + '</td>' +
+          '<td>' + esc_(r['Asal Aset'] || '-') + '</td>' +
+          '<td>' + esc_(r['Dicatat Oleh'] || '-') + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function terapkanPeriode_(idDari, idSampai, kunciDari, kunciSampai, renderFn) {
+      var dari = $(idDari).value;
+      var sampai = $(idSampai).value;
+      if (dari && sampai && dari > sampai) {
+        toast_("Rentang tanggal tidak valid: 'Dari' tidak boleh lebih baru dari 'Sampai'.", 'error');
+        $(idDari).value = FILTER[kunciDari];
+        $(idSampai).value = FILTER[kunciSampai];
+        return;
+      }
+      FILTER[kunciDari] = dari;
+      FILTER[kunciSampai] = sampai;
+      renderFn();
+    }
+
+    function terapkanFilterMasuk_() {
+      terapkanPeriode_('fMasukDari', 'fMasukSampai', 'masukDari', 'masukSampai', renderRiwayatMasuk_);
+    }
+
+    function resetFilterMasuk_() {
+      $('fMasukDari').value = '';
+      $('fMasukSampai').value = '';
+      FILTER.masukDari = '';
+      FILTER.masukSampai = '';
+      renderRiwayatMasuk_();
+    }
+
+    /* ================= Aset Keluar ================= */
+    function isiSatuanKeluar_() {
+      var sel = $('outKode');
+      var o = sel.options[sel.selectedIndex];
+      if (!o || !o.value) {
+        $('outSatuan').value = '';
+        $('infoStok').textContent = '';
+        $('outJumlah').removeAttribute('max');
+        return;
+      }
+      var stok = Number(o.getAttribute('data-stok') || 0);
+      var satuan = o.getAttribute('data-satuan') || 'unit';
+      var nama = o.getAttribute('data-nama') || '';
+      $('outSatuan').value = satuan;
+      $('outJumlah').max = stok || '';
+      $('infoStok').textContent = 'Stok ' + nama + ': ' + stok + ' ' + satuan;
+    }
+
+    function simpanKeluar(e) {
+      e.preventDefault();
+      var data = {
+        kodeAset: $('outKode').value,
+        tanggal: $('outTanggal').value,
+        jumlah: $('outJumlah').value,
+        satuan: $('outSatuan').value || 'unit',
+        ruangan: $('outRuangan').value.trim(),
+        penerima: $('outPenerima').value.trim(),
+        keterangan: $('outKetKeluar').value.trim()
+      };
+      if (!data.tanggal) { toast_('Tanggal keluar wajib diisi.', 'error'); return false; }
+      if (!data.kodeAset) { toast_('Pilih aset terlebih dahulu.', 'error'); return false; }
+      if (!(Number(data.jumlah) > 0)) { toast_('Jumlah harus lebih dari 0.', 'error'); return false; }
+      if (!data.ruangan) { toast_('Tujuan ruangan wajib diisi.', 'error'); return false; }
+      setTombol_('btnSimpanKeluar', true);
+      var r = simpanAsetKeluar_(data);
+      setTombol_('btnSimpanKeluar', false);
+      toast_(r.pesan, r.sukses ? 'sukses' : 'error');
+      if (r.sukses) {
+        $('formKeluar').reset();
+        $('outTanggal').value = hariIni_();
+        muatSemua_();
+      }
+      return false;
+    }
+
+    function muatRiwayatKeluar() {
+      DATA_LAPORAN.keluar = KELUAR.slice();
+      renderRiwayatKeluar_();
+    }
+
+    function rowsKeluarTerfilter_() {
+      return DATA_LAPORAN.keluar.filter(function (r) {
+        return dalamPeriode_(r['Tanggal Keluar'], FILTER.keluarDari, FILTER.keluarSampai);
+      });
+    }
+
+    function renderRiwayatKeluar_() {
+      var rows = rowsKeluarTerfilter_();
+      var tb = $('tbodyKeluar');
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="10" class="kosong">Belum ada transaksi aset keluar untuk periode ini.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (r) {
+        return '<tr>' +
+          '<td><span class="kode">' + esc_(r['No. Transaksi']) + '</span></td>' +
+          '<td>' + esc_(r['Tanggal Keluar']) + '</td>' +
+          '<td>' + esc_(r['Kode Aset']) + '</td>' +
+          '<td><strong>' + esc_(r['Nama Aset']) + '</strong></td>' +
+          '<td class="num jumlah-keluar">-' + Number(r['Jumlah']) + '</td>' +
+          '<td>' + esc_(r['Satuan']) + '</td>' +
+          '<td>' + esc_(r['Tujuan Ruangan'] || '-') + '</td>' +
+          '<td>' + esc_(r['Departemen / Penerima'] || '-') + '</td>' +
+          '<td>' + esc_(r['Keterangan'] || '-') + '</td>' +
+          '<td>' + esc_(r['Dicatat Oleh'] || '-') + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function terapkanFilterKeluar_() {
+      terapkanPeriode_('fKeluarDari', 'fKeluarSampai', 'keluarDari', 'keluarSampai', renderRiwayatKeluar_);
+    }
+
+    function resetFilterKeluar_() {
+      $('fKeluarDari').value = '';
+      $('fKeluarSampai').value = '';
+      FILTER.keluarDari = '';
+      FILTER.keluarSampai = '';
+      renderRiwayatKeluar_();
+    }
+
+    /* ================= Monitoring ================= */
+    function muatMonitoring() {
+      var ruangan = $('filterRuangan').value;
+      DATA_LAPORAN.distribusi = KELUAR.filter(function (r) {
+        return !ruangan || ruangan === 'SEMUA' || String(r['Tujuan Ruangan'] || '').trim().toLowerCase() === String(ruangan).trim().toLowerCase();
+      }).sort(function (a, b) {
+        return String(b['Tanggal Keluar'] + ' ' + b['Waktu Dicatat']).localeCompare(String(a['Tanggal Keluar'] + ' ' + a['Waktu Dicatat']));
+      });
+      renderDistribusi_();
+      gambarChartDistribusi_(ringkasanDistribusi_(), 'chartDistribusiMon');
+    }
+
+    function rowsDistribusiTerfilter_() {
+      return DATA_LAPORAN.distribusi.filter(function (r) {
+        return dalamPeriode_(r['Tanggal Keluar'], FILTER.monDari, FILTER.monSampai);
+      });
+    }
+
+    function renderDistribusi_() {
+      var rows = rowsDistribusiTerfilter_();
+      var tb = $('tbodyDistribusi');
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="10" class="kosong">Tidak ada data distribusi untuk filter ini.</td></tr>';
+      } else {
+        tb.innerHTML = rows.map(function (r) {
+          return '<tr>' +
+            '<td><span class="kode">' + esc_(r['No. Transaksi']) + '</span></td>' +
+            '<td>' + esc_(r['Tanggal Keluar']) + '</td>' +
+            '<td>' + esc_(r['Kode Aset']) + '</td>' +
+            '<td><strong>' + esc_(r['Nama Aset']) + '</strong></td>' +
+            '<td class="num jumlah-keluar">-' + Number(r['Jumlah']) + '</td>' +
+            '<td>' + esc_(r['Satuan']) + '</td>' +
+            '<td>' + esc_(r['Tujuan Ruangan'] || '-') + '</td>' +
+            '<td>' + esc_(r['Departemen / Penerima'] || '-') + '</td>' +
+            '<td>' + esc_(r['Keterangan'] || '-') + '</td>' +
+            '<td>' + esc_(r['Dicatat Oleh'] || '-') + '</td>' +
+            '</tr>';
+        }).join('');
+      }
+      $('monTotalUnit').textContent = rows.reduce(function (s, r) { return s + (Number(r['Jumlah']) || 0); }, 0);
+      $('monTransaksi').textContent = rows.length;
+      var ruanganUnik = {};
+      rows.forEach(function (r) { if (r['Tujuan Ruangan']) ruanganUnik[r['Tujuan Ruangan']] = true; });
+      $('monRuangan').textContent = Object.keys(ruanganUnik).length;
+    }
+
+    function terapkanFilterMon_() {
+      terapkanPeriode_('fMonDari', 'fMonSampai', 'monDari', 'monSampai', renderDistribusi_);
+    }
+
+    function resetFilterMon_() {
+      $('fMonDari').value = '';
+      $('fMonSampai').value = '';
+      FILTER.monDari = '';
+      FILTER.monSampai = '';
+      renderDistribusi_();
+    }
+
+    /* ================= Modal ================= */
+    function bukaModal_(judul, isiHtml, aksi) {
+      aksiModal_ = aksi;
+      $('modalTitle').textContent = judul;
+      $('modalBody').innerHTML = isiHtml;
+      $('modalOverlay').classList.add('show');
+    }
+
+    function tutupModal_() {
+      aksiModal_ = null;
+      $('modalOverlay').classList.remove('show');
+    }
+
+    /* ================= Laporan: Cetak/PDF & CSV ================= */
+
+    var HEADER_LAPORAN_MASTER = ['Kode Aset', 'Nama Aset', 'Kategori', 'Spesifikasi', 'Lokasi Penyimpanan', 'Jumlah Total', 'Satuan', 'Kondisi', 'Tanggal Masuk', 'Status', 'PIC'];
+    var HEADER_LAPORAN_MASUK = ['No. Transaksi', 'Tanggal Masuk', 'Kode Aset', 'Nama Aset', 'Kategori', 'Jumlah', 'Satuan', 'Kondisi', 'Asal Aset', 'Keterangan', 'Dicatat Oleh', 'Waktu Dicatat'];
+    var HEADER_LAPORAN_KELUAR = ['No. Transaksi', 'Tanggal Keluar', 'Kode Aset', 'Nama Aset', 'Kategori', 'Jumlah', 'Satuan', 'Tujuan Ruangan', 'Departemen / Penerima', 'Keterangan', 'Dicatat Oleh', 'Waktu Dicatat'];
+    var HEADER_LAPORAN_AKTIVITAS = ['Jenis', 'Tanggal', 'Kode Aset', 'Nama Aset', 'Ruangan / Asal', 'Jumlah', 'Satuan', 'Keterangan', 'Waktu Dicatat'];
+
+    function selCsv_(nilai) {
+      var s = String(nilai == null ? '' : nilai);
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+
+    function buatCsv_(headers, rows) {
+      var baris = [headers.map(selCsv_).join(',')];
+      rows.forEach(function (r) {
+        baris.push(headers.map(function (h) { return selCsv_(r[h]); }).join(','));
+      });
+      return baris.join('\r\n');
+    }
+
+    // Ambil tema efektif untuk popup: preferensi lokal → default global (cache) → sistem
+    function temaGelapUntukPopup_(cb) {
+      var punyaLokal = false;
+      try { punyaLokal = !!localStorage.getItem('siasik_tema'); } catch (e) {}
+      if (punyaLokal) { cb(TEMA_GELAP); return; } // preferensi lokal menang
+      var g = null;
+      try { g = localStorage.getItem('siasik_tema_global'); } catch (e) {}
+      if (g === 'gelap') cb(true);
+      else if (g === 'terang') cb(false);
+      else cb(TEMA_GELAP); // auto / tak diatur → ikuti tema yang sedang aktif (sistem)
+    }
+
+    function bukaUnduhCsv_(namaFile, isiCsv) {
+      if (!isiCsv || !isiCsv.length) { toast_('Tidak ada data untuk diekspor.', 'error'); return; }
+      var href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\uFEFF' + isiCsv);
+      var w = window.open('', '_blank');
+      if (!w) { toast_('Popup diblokir browser. Izinkan popup lalu coba lagi.', 'error'); return; }
+      // Sinkronkan tema global dari cache saat popup dibuka
+      temaGelapUntukPopup_(function (g) {
+      if (w.closed) return; // popup sudah ditutup sebelum jawaban tema tiba
+        w.document.write('<!DOCTYPE html><html lang="id" data-theme="' + (g ? 'dark' : 'light') + '"><head><meta charset="utf-8"><title>Unduh CSV</title>'
+          + '<style>html{color-scheme:' + (g ? 'dark' : 'light') + '}body{font-family:"Segoe UI",Arial,sans-serif;margin:24px;color:' + (g ? '#e2e8f0' : '#111') + ';background:' + (g ? '#0f172a' : '#fff') + '}h3{margin:0 0 6px}p{font-size:13px;color:' + (g ? '#94a3b8' : '#475569') + ';margin:4px 0}a{display:inline-block;margin:10px 0;background:#0d9488;color:#fff;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:8px}textarea{width:100%;height:230px;margin-top:8px;font-family:Consolas,monospace;font-size:11px;border:1px solid ' + (g ? '#334155' : '#cbd5e1') + ';border-radius:8px;padding:8px;background:' + (g ? '#1e293b' : '#fff') + ';color:' + (g ? '#e2e8f0' : '#111') + '}</style></head><body>'
+          + '<h3>Unduhan CSV — SIASIK</h3>'
+          + '<p>Jika unduhan otomatis tidak muncul, klik tombol di bawah atau salin isi kotak teks.</p>'
+          + '<a id="tombolUnduh" download="' + esc_(namaFile) + '">⬇ Unduh ' + esc_(namaFile) + '</a>'
+          + '<textarea readonly>' + esc_(isiCsv) + '</textarea>'
+          + '<script>var a=document.getElementById("tombolUnduh");a.href="' + href + '";setTimeout(function(){a.click();},250);<\/script>'
+          + '</body></html>');
+        w.document.close();
+        w.document.title = 'Unduh ' + namaFile;
+      });
+    }
+
+    function unduhCsv_(namaFile, headers, rows) {
+      if (!rows || !rows.length) { toast_('Tidak ada data untuk diekspor.', 'error'); return; }
+      bukaUnduhCsv_(namaFile, buatCsv_(headers, rows));
+    }
+
+    function ringkasanPer_(rows, kolomUtama, kolomNilai, labelKosong) {
+      var agg = {};
+      rows.forEach(function (r) {
+        var k = String(r[kolomUtama] || '').trim() || labelKosong || '(Tanpa)';
+        agg[k] = agg[k] || { nama: k, total: 0 };
+        agg[k].total += Number(r[kolomNilai]) || 0;
+      });
+      var arr = Object.keys(agg).map(function (k) { return agg[k]; });
+      arr.sort(function (a, b) { return b.total - a.total; });
+      return arr;
+    }
+
+    function ringkasanKategori_(rows, kolomNilai) {
+      var arr = ringkasanPer_(rows, 'Kategori', kolomNilai, '(Tanpa Kategori)');
+      return {
+        judul: 'Rekapitulasi per Kategori',
+        kolom: ['Kategori', 'Jumlah'],
+        baris: arr.map(function (a) { return [a.nama, a.total]; }),
+        total: ['Total', arr.reduce(function (s, a) { return s + a.total; }, 0)]
+      };
+    }
+
+    function ringkasanRuangan_(rows, kolomNilai) {
+      var arr = ringkasanPer_(rows, 'Tujuan Ruangan', kolomNilai, '(Tanpa Ruangan)');
+      return {
+        judul: 'Rekapitulasi per Ruangan Tujuan',
+        kolom: ['Ruangan', 'Jumlah'],
+        baris: arr.map(function (a) { return [a.nama, a.total]; }),
+        total: ['Total', arr.reduce(function (s, a) { return s + a.total; }, 0)]
+      };
+    }
+
+    function ringkasanJenisAktivitas_(rows) {
+      var agg = { 'Aset Masuk': 0, 'Aset Keluar': 0 };
+      rows.forEach(function (r) {
+        var k = r.jenis === 'Masuk' ? 'Aset Masuk' : 'Aset Keluar';
+        agg[k] += Number(r.jumlah) || 0;
+      });
+      return {
+        judul: 'Rekapitulasi Jumlah Unit',
+        kolom: ['Jenis', 'Jumlah Unit'],
+        baris: [['Aset Masuk', agg['Aset Masuk']], ['Aset Keluar', agg['Aset Keluar']]],
+        total: ['Total', agg['Aset Masuk'] + agg['Aset Keluar']]
+      };
+    }
+
+    function gayaCetak_(g) {
+      if (typeof g !== 'boolean') g = TEMA_GELAP;
+      return ''
+        + '*{box-sizing:border-box}'
+        + 'html{color-scheme:' + (g ? 'dark' : 'light') + '}'
+        + 'body{font-family:"Segoe UI",Arial,sans-serif;margin:22px;color:' + (g ? '#e2e8f0' : '#111') + ';font-size:12px;background:' + (g ? '#0f172a' : '#fff') + '}'
+        + '.kop{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #0f766e;padding-bottom:10px;margin-bottom:14px}'
+        + '.kop h1{margin:0;font-size:19px;color:' + (g ? '#2dd4bf' : '#0f766e') + '}'
+        + '.kop .sub{color:' + (g ? '#94a3b8' : '#475569') + ';font-size:11px}'
+        + 'h2{margin:0 0 4px;font-size:15px;color:' + (g ? '#f1f5f9' : '#111') + '}'
+        + '.meta{color:' + (g ? '#94a3b8' : '#475569') + ';font-size:11px;margin-bottom:12px}'
+        + 'table{width:100%;border-collapse:collapse;font-size:10.5px}'
+        + 'th{background:#0f766e;color:#fff;padding:6px 7px;text-align:left;white-space:nowrap}'
+        + 'td{border:1px solid ' + (g ? '#334155' : '#cbd5e1') + ';padding:5px 7px}'
+        + 'tr:nth-child(even) td{background:' + (g ? '#16213a' : '#f8fafc') + '}'
+        + '.ttd{margin-top:46px;text-align:right;font-size:12px;color:' + (g ? '#cbd5e1' : '#111') + '}'
+        + '.rek{margin-top:26px;page-break-inside:avoid}'
+        + '.rek h3{font-size:12.5px;margin:0 0 6px;color:' + (g ? '#2dd4bf' : '#0f766e') + '}'
+        + '.rek table{width:auto;min-width:260px;border-collapse:collapse;font-size:10.5px}'
+        + '.rek th{background:' + (g ? '#334155' : '#e2e8f0') + ';color:' + (g ? '#e2e8f0' : '#334155') + ';padding:5px 10px;text-align:left;white-space:nowrap}'
+        + '.rek td{border:1px solid ' + (g ? '#334155' : '#cbd5e1') + ';padding:5px 10px}'
+        + '.rek tr.total td{font-weight:700;background:' + (g ? '#1e293b' : '#f1f5f9') + '}'
+        + '@page{size:A4 landscape;margin:10mm}'
+        + '@media print{html{color-scheme:light !important}body{margin:8mm;background:#fff !important;color:#111 !important}h2{color:#111 !important}.kop h1{color:#0f766e !important}.kop .sub,.meta{color:#475569 !important}th{background:#0f766e !important;color:#fff !important}td{color:#111 !important;border-color:#cbd5e1 !important}tr:nth-child(even) td{background:#f8fafc !important}.rek h3{color:#0f766e !important}.rek th{background:#e2e8f0 !important;color:#334155 !important}.rek tr.total td{background:#f1f5f9 !important;color:#111 !important}.ttd{color:#111 !important}}';
+    }
+
+    function kopCetak_(meta) {
+      return '<div class="kop"><div><h1>SIASIK — RSUD Mimika</h1><div class="sub">Sistem Informasi Aset dan Logistik</div></div><div class="sub">' + esc_(meta) + '</div></div>';
+    }
+
+    function blokTabelHtml_(judul, kolom, baris, total) {
+      var kh = kolom.map(function (c) { return '<th>' + esc_(c) + '</th>'; }).join('');
+      var kb = baris.map(function (br) {
+        return '<tr>' + br.map(function (sel) { return '<td>' + esc_(sel) + '</td>'; }).join('') + '</tr>';
+      }).join('');
+      var tr = '';
+      if (total) {
+        tr = '<tr class="total">' + kolom.map(function (c, i) {
+          var v = i === 0 ? total[0] : (total[i] == null ? '' : total[i]);
+          return '<td>' + esc_(v) + '</td>';
+        }).join('') + '</tr>';
+      }
+      return '<div class="rek"><h3>' + esc_(judul) + '</h3><table><thead><tr>' + kh + '</tr></thead><tbody>' + kb + tr + '</tbody></table></div>';
+    }
+
+    function ringkasanHtml_(ringkasan) {
+      if (!ringkasan || !ringkasan.length) return '';
+      return ringkasan.map(function (rs) { return blokTabelHtml_(rs.judul, rs.kolom, rs.baris, rs.total); }).join('');
+    }
+
+    function cetakLaporan_(judul, subJudul, headers, rows, ringkasan) {
+      if (!rows || !rows.length) { toast_('Tidak ada data untuk dicetak.', 'error'); return; }
+      var w = window.open('', '_blank');
+      if (!w) { toast_('Popup diblokir browser. Izinkan popup lalu coba lagi.', 'error'); return; }
+      var meta = 'Dicetak oleh: ' + (USER_EMAIL || '-') + '  •  ' + new Date().toLocaleString('id-ID');
+      var thead = headers.map(function (h) { return '<th>' + esc_(h) + '</th>'; }).join('');
+      var tbody = rows.map(function (r) {
+        return '<tr>' + headers.map(function (h) { return '<td>' + esc_(r[h]) + '</td>'; }).join('') + '</tr>';
+      }).join('');
+      // Sinkronkan tema global dari cache saat popup dibuka
+      temaGelapUntukPopup_(function (g) {
+      if (w.closed) return; // popup sudah ditutup sebelum jawaban tema tiba
+        var html = '<!DOCTYPE html><html lang="id" data-theme="' + (g ? 'dark' : 'light') + '"><head><meta charset="utf-8"><title>' + esc_(judul) + '</title>'
+          + '<style>' + gayaCetak_(g) + '</style></head><body>'
+          + kopCetak_(meta)
+          + '<h2>' + esc_(judul) + '</h2>'
+          + (subJudul ? '<div class="meta">' + esc_(subJudul) + '</div>' : '')
+          + '<table><thead><tr>' + thead + '</tr></thead><tbody>' + tbody + '</tbody></table>'
+          + ringkasanHtml_(ringkasan)
+          + '<div class="ttd"><div>Mengetahui,<br>Kepala Instalasi Logistik<br>RSUD Mimika</div></div>'
+          + '<script>window.onload=function(){setTimeout(function(){window.focus();window.print();},350);};<\/script>'
+          + '</body></html>';
+        w.document.write(html);
+        w.document.close();
+        w.document.title = judul;
+      });
+    }
+
+    /* --- Master --- */
+    function cetakMaster_() {
+      var rows = rowsMasterTerfilter_();
+      var ringkasan = rows.length ? [ringkasanKategori_(rows, 'Jumlah Total')] : null;
+      cetakLaporan_('Laporan Master Inventory', 'Jumlah aset: ' + rows.length + ' — sesuai filter tampilan saat ini', HEADER_LAPORAN_MASTER, rows, ringkasan);
+    }
+    function eksporMaster_() {
+      unduhCsv_('master-inventory.csv', HEADER_LAPORAN_MASTER, rowsMasterTerfilter_());
+    }
+
+    /* --- Aset Masuk --- */
+    function cetakMasuk_() {
+      var rows = rowsMasukTerfilter_();
+      var sub = 'Menampilkan ' + rows.length + ' transaksi';
+      var lp = labelPeriode_(FILTER.masukDari, FILTER.masukSampai);
+      if (lp) sub += ' • ' + lp;
+      cetakLaporan_('Laporan Aset Masuk', sub, HEADER_LAPORAN_MASUK, rows, rows.length ? [ringkasanKategori_(rows, 'Jumlah')] : null);
+    }
+    function eksporMasuk_() {
+      unduhCsv_('aset-masuk.csv', HEADER_LAPORAN_MASUK, rowsMasukTerfilter_());
+    }
+
+    /* --- Aset Keluar --- */
+    function cetakKeluar_() {
+      var rows = rowsKeluarTerfilter_();
+      var sub = 'Menampilkan ' + rows.length + ' transaksi';
+      var lp = labelPeriode_(FILTER.keluarDari, FILTER.keluarSampai);
+      if (lp) sub += ' • ' + lp;
+      cetakLaporan_('Laporan Aset Keluar / Distribusi', sub, HEADER_LAPORAN_KELUAR, rows, rows.length ? [ringkasanRuangan_(rows, 'Jumlah')] : null);
+    }
+    function eksporKeluar_() {
+      unduhCsv_('aset-keluar.csv', HEADER_LAPORAN_KELUAR, rowsKeluarTerfilter_());
+    }
+
+    /* --- Monitoring Distribusi --- */
+    function filterLaporanDistribusi_() {
+      return $('filterRuangan').value === 'SEMUA' ? 'Semua ruangan' : $('filterRuangan').value;
+    }
+    function cetakDistribusi_() {
+      var rows = rowsDistribusiTerfilter_();
+      var sub = 'Filter: ' + filterLaporanDistribusi_() + ' — ' + rows.length + ' transaksi';
+      var lp = labelPeriode_(FILTER.monDari, FILTER.monSampai);
+      if (lp) sub += ' • ' + lp;
+      cetakLaporan_('Laporan Monitoring Distribusi', sub, HEADER_LAPORAN_KELUAR, rows, rows.length ? [ringkasanRuangan_(rows, 'Jumlah')] : null);
+    }
+    function eksporDistribusi_() {
+      unduhCsv_('monitoring-distribusi.csv', HEADER_LAPORAN_KELUAR, rowsDistribusiTerfilter_());
+    }
+
+    /* --- Dashboard: Aktivitas Terbaru --- */
+    function muatAktivitasLaporan_(cb) {
+      DATA_LAPORAN.aktivitas = riwayatTransaksi_(100);
+      if (cb) cb();
+    }
+    function rowsAktivitasLaporan_() {
+      return DATA_LAPORAN.aktivitas.map(function (r) {
+        return {
+          'Jenis': r.jenis === 'Masuk' ? 'Aset Masuk' : 'Aset Keluar',
+          'Tanggal': r.tanggal,
+          'Kode Aset': r.kode,
+          'Nama Aset': r.nama,
+          'Ruangan / Asal': r.jenis === 'Keluar' ? (r.ruangan || '-') : ('Asal: ' + (r.asal || '-')),
+          'Jumlah': Number(r.jumlah),
+          'Satuan': r.satuan,
+          'Keterangan': r.keterangan || '',
+          'Waktu Dicatat': r.waktu
+        };
+      });
+    }
+    function cetakAktivitas_() {
+      muatAktivitasLaporan_(function () {
+        cetakLaporan_('Log Aktivitas Aset', 'Menampilkan ' + DATA_LAPORAN.aktivitas.length + ' aktivitas terbaru (Aset Masuk & Keluar)', HEADER_LAPORAN_AKTIVITAS, rowsAktivitasLaporan_(), [ringkasanJenisAktivitas_(DATA_LAPORAN.aktivitas)]);
+      });
+    }
+    function eksporAktivitas_() {
+      muatAktivitasLaporan_(function () {
+        unduhCsv_('log-aktivitas.csv', HEADER_LAPORAN_AKTIVITAS, rowsAktivitasLaporan_());
+      });
+    }
+
+    /* ================= Laporan terpusat ================= */
+    function muatLaporan() {
+      DATA_LAPORAN.laporan = dataLaporan_(FILTER.lapDari, FILTER.lapSampai);
+      renderLaporan_();
+    }
+
+    function barisRekapHtml_(arr, kolom, pesanKosong, colspan) {
+      if (!arr || !arr.length) return '<tr><td colspan="' + colspan + '" class="kosong">' + pesanKosong + '</td></tr>';
+      return arr.map(function (r) {
+        return '<tr>' + kolom.map(function (c) {
+          var v = c.t === 'bln' ? labelBulan_(r[c.k]) : r[c.k];
+          return '<td' + (c.num ? ' class="num"' : '') + '>' + esc_(v) + '</td>';
+        }).join('') + '</tr>';
+      }).join('');
+    }
+
+    function renderLaporan_() {
+      var d = DATA_LAPORAN.laporan;
+      if (!d) return;
+      var s = d.statistik;
+      $('lapTotalAset').textContent = s.totalAset;
+      $('lapTotalStok').textContent = s.totalStok;
+      $('lapMasukPeriode').textContent = s.masukPeriode;
+      $('lapKeluarPeriode').textContent = s.keluarPeriode;
+      $('lapTransaksiMasuk').textContent = s.transaksiMasuk;
+      $('lapTransaksiKeluar').textContent = s.transaksiKeluar;
+      $('tbodyLapStok').innerHTML = barisRekapHtml_(d.stokKategori, [{ k: 'nama' }, { k: 'jumlah', num: true }, { k: 'transaksi', num: true }], 'Belum ada data aset di Master Inventory.', 3);
+      $('tbodyLapMasuk').innerHTML = barisRekapHtml_(d.masukKategori, [{ k: 'nama' }, { k: 'jumlah', num: true }, { k: 'transaksi', num: true }], 'Tidak ada transaksi aset masuk untuk periode ini.', 3);
+      $('tbodyLapKeluar').innerHTML = barisRekapHtml_(d.keluarRuangan, [{ k: 'nama' }, { k: 'jumlah', num: true }, { k: 'transaksi', num: true }], 'Tidak ada transaksi aset keluar untuk periode ini.', 3);
+      $('tbodyLapTren').innerHTML = barisRekapHtml_(d.tren, [{ k: 'bulan', t: 'bln' }, { k: 'masuk', num: true }, { k: 'keluar', num: true }], 'Tidak ada transaksi untuk periode ini.', 3);
+    }
+
+    function terapkanFilterLap_() {
+      terapkanPeriode_('fLapDari', 'fLapSampai', 'lapDari', 'lapSampai', muatLaporan);
+      $('infoLapPeriode').textContent = labelPeriode_(FILTER.lapDari, FILTER.lapSampai);
+    }
+
+    function resetFilterLap_() {
+      $('fLapDari').value = '';
+      $('fLapSampai').value = '';
+      FILTER.lapDari = '';
+      FILTER.lapSampai = '';
+      $('infoLapPeriode').textContent = '';
+      muatLaporan();
+    }
+
+    function dataLaporanKosong_(d) {
+      var s = d.statistik;
+      return !s.totalAset && !s.masukPeriode && !s.keluarPeriode;
+    }
+
+    function cetakLaporanGabungan_() {
+      var d = DATA_LAPORAN.laporan;
+      if (!d) { toast_('Muat data laporan terlebih dahulu.', 'error'); return; }
+      if (dataLaporanKosong_(d)) { toast_('Tidak ada data untuk dicetak.', 'error'); return; }
+      var w = window.open('', '_blank');
+      if (!w) { toast_('Popup diblokir browser. Izinkan popup lalu coba lagi.', 'error'); return; }
+      var meta = 'Dicetak oleh: ' + (USER_EMAIL || '-') + '  •  ' + new Date().toLocaleString('id-ID');
+      var sub = 'Rekapitulasi seluruh aset dan logistik';
+      var lp = labelPeriode_(FILTER.lapDari, FILTER.lapSampai);
+      if (lp) sub += ' • ' + lp;
+      var s = d.statistik;
+      function sumRows(arr, k) { return arr.reduce(function (t, r) { return t + (Number(r[k]) || 0); }, 0); }
+      // Sinkronkan tema global dari cache saat popup dibuka
+      temaGelapUntukPopup_(function (g) {
+      if (w.closed) return; // popup sudah ditutup sebelum jawaban tema tiba
+        var html = '<!DOCTYPE html><html lang="id" data-theme="' + (g ? 'dark' : 'light') + '"><head><meta charset="utf-8"><title>Laporan Rekapitulasi SIASIK</title>'
+          + '<style>' + gayaCetak_(g) + '</style></head><body>'
+          + kopCetak_(meta)
+          + '<h2>Laporan Rekapitulasi SIASIK</h2>'
+          + (sub ? '<div class="meta">' + esc_(sub) + '</div>' : '')
+          + blokTabelHtml_('Statistik Ringkas', ['Keterangan', 'Nilai'], [
+            ['Total Aset', s.totalAset], ['Total Stok', s.totalStok],
+            ['Aset Masuk (Periode)', s.masukPeriode], ['Aset Keluar (Periode)', s.keluarPeriode],
+            ['Transaksi Masuk', s.transaksiMasuk], ['Transaksi Keluar', s.transaksiKeluar]
+          ], null)
+          + blokTabelHtml_('1. Stok per Kategori', ['Kategori', 'Jumlah Stok', 'Jenis Aset'],
+            d.stokKategori.map(function (r) { return [r.nama, r.jumlah, r.transaksi]; }),
+            ['Total', sumRows(d.stokKategori, 'jumlah'), sumRows(d.stokKategori, 'transaksi')])
+          + blokTabelHtml_('2. Aset Masuk per Kategori', ['Kategori', 'Jumlah Masuk', 'Transaksi'],
+            d.masukKategori.map(function (r) { return [r.nama, r.jumlah, r.transaksi]; }),
+            ['Total', sumRows(d.masukKategori, 'jumlah'), sumRows(d.masukKategori, 'transaksi')])
+          + blokTabelHtml_('3. Aset Keluar per Ruangan', ['Ruangan', 'Jumlah Keluar', 'Transaksi'],
+            d.keluarRuangan.map(function (r) { return [r.nama, r.jumlah, r.transaksi]; }),
+            ['Total', sumRows(d.keluarRuangan, 'jumlah'), sumRows(d.keluarRuangan, 'transaksi')])
+          + blokTabelHtml_('4. Tren Bulanan (Aset Masuk & Keluar)', ['Bulan', 'Aset Masuk', 'Aset Keluar'],
+            d.tren.map(function (t) { return [labelBulan_(t.bulan), t.masuk, t.keluar]; }),
+            ['Total', sumRows(d.tren, 'masuk'), sumRows(d.tren, 'keluar')])
+          + '<div class="ttd"><div>Mengetahui,<br>Kepala Instalasi Logistik<br>RSUD Mimika</div></div>'
+          + '<script>window.onload=function(){setTimeout(function(){window.focus();window.print();},350);};<\/script>'
+          + '</body></html>';
+        w.document.write(html);
+        w.document.close();
+        w.document.title = 'Laporan Rekapitulasi SIASIK';
+      });
+    }
+
+    function eksporLaporanGabungan_() {
+      var d = DATA_LAPORAN.laporan;
+      if (!d) { toast_('Muat data laporan terlebih dahulu.', 'error'); return; }
+      if (dataLaporanKosong_(d)) { toast_('Tidak ada data untuk diekspor.', 'error'); return; }
+      var baris = [];
+      function seksi(judul, kolom, isi) {
+        baris.push('');
+        baris.push('### ' + judul);
+        baris.push(kolom.join(','));
+        isi.forEach(function (r) { baris.push(r.map(selCsv_).join(',')); });
+      }
+      var s = d.statistik;
+      seksi('STATISTIK', ['Keterangan', 'Nilai'], [
+        ['Total Aset', s.totalAset], ['Total Stok', s.totalStok],
+        ['Aset Masuk (Periode)', s.masukPeriode], ['Aset Keluar (Periode)', s.keluarPeriode],
+        ['Transaksi Masuk', s.transaksiMasuk], ['Transaksi Keluar', s.transaksiKeluar]
+      ]);
+      seksi('STOK PER KATEGORI', ['Kategori', 'Jumlah Stok', 'Jenis Aset'],
+        d.stokKategori.map(function (r) { return [r.nama, r.jumlah, r.transaksi]; }));
+      seksi('ASET MASUK PER KATEGORI', ['Kategori', 'Jumlah Masuk', 'Transaksi'],
+        d.masukKategori.map(function (r) { return [r.nama, r.jumlah, r.transaksi]; }));
+      seksi('ASET KELUAR PER RUANGAN', ['Ruangan', 'Jumlah Keluar', 'Transaksi'],
+        d.keluarRuangan.map(function (r) { return [r.nama, r.jumlah, r.transaksi]; }));
+      seksi('TREN BULANAN', ['Bulan', 'Aset Masuk', 'Aset Keluar'],
+        d.tren.map(function (t) { return [labelBulan_(t.bulan), t.masuk, t.keluar]; }));
+      bukaUnduhCsv_('laporan-rekapitulasi.csv', baris.join('\r\n'));
+    }
+
+    /* ================= Muat ulang semua ================= */
+    function muatSemua_() {
+      muatDataBersama_();
+      muatDashboard();
+      muatMasterAset();
+      muatRiwayatMasuk();
+      muatRiwayatKeluar();
+      muatMonitoring();
+      muatLaporan();
+    }
+
+    /* ================= Inisialisasi ================= */
+    document.addEventListener('DOMContentLoaded', function () {
+      muatPenyimpanan_();
+      $('avatarInitial').textContent = 'D';
+      $('sidebarUser').textContent = USER_EMAIL;
+      $('userTop').textContent = USER_EMAIL;
+      $('tanggalHariIni').textContent = new Date().toLocaleDateString('id-ID', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+      $('inTanggal').value = hariIni_();
+      $('outTanggal').value = hariIni_();
+      terapkanTema_(false);
+
+      $('cariAset').addEventListener('input', renderMaster_);
+      $('filterKategori').addEventListener('change', renderMaster_);
+      $('inNamaAset').addEventListener('input', isiOtomatisMasuk_);
+      $('outKode').addEventListener('change', isiSatuanKeluar_);
+      $('filterRuangan').addEventListener('change', muatMonitoring);
+      $('fMasukDari').addEventListener('change', terapkanFilterMasuk_);
+      $('fMasukSampai').addEventListener('change', terapkanFilterMasuk_);
+      $('fKeluarDari').addEventListener('change', terapkanFilterKeluar_);
+      $('fKeluarSampai').addEventListener('change', terapkanFilterKeluar_);
+      $('fMonDari').addEventListener('change', terapkanFilterMon_);
+      $('fMonSampai').addEventListener('change', terapkanFilterMon_);
+      $('fTrenDari').addEventListener('change', terapkanFilterTren_);
+      $('fTrenSampai').addEventListener('change', terapkanFilterTren_);
+      $('fLapDari').addEventListener('change', terapkanFilterLap_);
+      $('fLapSampai').addEventListener('change', terapkanFilterLap_);
+      $('tbodyMaster').addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-hapus]');
+        if (b) konfirmasiHapus(b.getAttribute('data-hapus'));
+      });
+      $('modalConfirmBtn').addEventListener('click', function () { if (aksiModal_) aksiModal_(); });
+      $('modalOverlay').addEventListener('click', function (e) { if (e.target === this) tutupModal_(); });
+      $('formMasuk').addEventListener('reset', function () { $('inTanggal').value = hariIni_(); });
+      $('formKeluar').addEventListener('reset', function () {
+        $('outTanggal').value = hariIni_();
+        $('infoStok').textContent = '';
+        $('outSatuan').value = '';
+        $('outJumlah').removeAttribute('max');
+      });
+
+      muatSemua_();
+    });
+  </script>
+</body>
+</html>

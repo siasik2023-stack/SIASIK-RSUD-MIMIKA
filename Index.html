@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIASIK — RSUD Mimika</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    // Terapkan tema sebelum render pertama (cegah kedipan saat mode gelap)
+    // Urutan prioritas: preferensi lokal (siasik_tema) → cache default global (siasik_tema_global) → sistem
+    try {
+      var _t = localStorage.getItem('siasik_tema');
+      var _pilih;
+      if (_t === 'terang' || _t === 'gelap' || _t === 'auto') _pilih = _t;
+      else {
+        var _gt = localStorage.getItem('siasik_tema_global');
+        if (_gt === 'terang' || _gt === 'gelap' || _gt === 'auto') _pilih = _gt;
+      }
+      var _auto = !_pilih || _pilih === 'auto';
+      var _g = _auto
+        ? !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        : _pilih === 'gelap';
+      document.documentElement.setAttribute('data-theme', _g ? 'dark' : 'light');
+    } catch (e) {}
+  </script>
+  <style>
+    <?!= include('styles.html'); ?>
+  </style>
+</head>
+<body>
+  <span id="userEmailData" style="display:none"><?= userEmail ?></span>
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">S</div>
+      <div class="brand-text">
+        <strong>SIASIK</strong>
+        <span>Sistem Informasi Aset &amp; Logistik</span>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-section="dashboard" onclick="gantiSection('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-section="master" onclick="gantiSection('master')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Master Inventory
+      </button>
+      <button class="nav-item" data-section="masuk" onclick="gantiSection('masuk')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Aset Masuk
+      </button>
+      <button class="nav-item" data-section="keluar" onclick="gantiSection('keluar')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Aset Keluar
+      </button>
+      <button class="nav-item" data-section="monitoring" onclick="gantiSection('monitoring')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Monitoring Distribusi
+      </button>
+      <button class="nav-item" data-section="laporan" onclick="gantiSection('laporan')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Laporan
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar" id="avatarInitial">?</div>
+        <div class="user-meta">
+          <strong id="sidebarUser">—</strong>
+          <span>Pengguna aktif</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
+
+  <!-- ===== Konten utama ===== -->
+  <main class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()" aria-label="Buka menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 id="pageTitle">Dashboard</h1>
+      <div class="topbar-right">
+        <span class="date-chip" id="tanggalHariIni"></span>
+        <button class="tema-btn" id="tombolTema" onclick="gantiTema_()" title="Tema: Auto — klik untuk ganti (Auto / Terang / Gelap)" aria-label="Ganti tema: Auto / Terang / Gelap">🌗 Auto</button>
+        <button class="tema-btn" id="tombolTemaGlobal" onclick="setTemaGlobal_()" title="Default global: — — klik untuk menjadikan tema saat ini sebagai default semua pengguna (hanya admin)" aria-label="Atur tema global untuk semua pengguna">🌐</button>
+        <span class="badge-tema-global" id="badgeTemaGlobal" hidden><span class="dot"></span><span id="badgeTemaGlobalTeks">Default global: —</span></span>
+        <span class="user-chip-top" id="userTop">—</span>
+      </div>
+    </header>
+
+    <!-- ===== Dashboard ===== -->
+    <section id="section-dashboard" class="section active">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon hijau">📦</div>
+          <div><span class="stat-label">Total Aset</span><strong class="stat-value" id="statTotalAset">0</strong></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon biru">🗃️</div>
+          <div><span class="stat-label">Total Stok</span><strong class="stat-value" id="statTotalStok">0</strong></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon toska">📥</div>
+          <div><span class="stat-label">Masuk Bulan Ini</span><strong class="stat-value" id="statMasukBulan">0</strong></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon kuning">📤</div>
+          <div><span class="stat-label">Keluar Bulan Ini</span><strong class="stat-value" id="statKeluarBulan">0</strong></div>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-header"><h3>Komposisi Kategori Aset</h3></div>
+          <div class="chart-box"><canvas id="chartKategori"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Distribusi per Ruangan</h3></div>
+          <div class="chart-box"><canvas id="chartDistribusi"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header">
+          <h3>Tren Aset Masuk &amp; Keluar</h3>
+          <div class="toolbar">
+            <span class="hint" id="infoTrenPeriode"></span>
+            <label class="hint" for="fTrenDari">Periode:</label>
+            <input type="date" id="fTrenDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fTrenSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterTren_()" title="Hapus filter periode">✕</button>
+          </div>
+        </div>
+        <div class="chart-box tall"><canvas id="chartTren"></canvas></div>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header">
+          <h3>Aktivitas Terbaru</h3>
+          <div class="toolbar">
+            <button class="btn btn-sm btn-outline" onclick="cetakAktivitas_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporAktivitas_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="gantiSection('monitoring')">Lihat Semua</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Jenis</th><th>Tanggal</th><th>Aset</th><th>Detail</th><th>Jumlah</th><th>Waktu Dicatat</th>
+            </tr></thead>
+            <tbody id="tbodyAktivitas"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Master Inventory ===== -->
+    <section id="section-master" class="section">
+      <div class="card">
+        <div class="card-header wrap">
+          <h3>Master Inventory</h3>
+          <div class="toolbar">
+            <input type="search" id="cariAset" class="input search" placeholder="Cari nama / kode / kategori...">
+            <select id="filterKategori" class="input"></select>
+            <button class="btn btn-outline" onclick="cetakMaster_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-outline" onclick="eksporMaster_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-outline" onclick="muatMasterAset()" title="Muat ulang">↻</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Kode</th><th>Nama Aset</th><th>Kategori</th><th>Lokasi</th><th class="num">Stok</th><th>Satuan</th><th>Kondisi</th><th>Status</th><th>PIC</th><th></th>
+            </tr></thead>
+            <tbody id="tbodyMaster"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Aset Masuk ===== -->
+    <section id="section-masuk" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>Form Input — Aset Masuk</h3>
+          <span class="hint">Pencatatan aset baru masuk ke sistem</span>
+        </div>
+        <form id="formMasuk" class="form-grid" onsubmit="return simpanMasuk(event)">
+          <div class="field"><label for="inTanggal">Tanggal Masuk *</label><input type="date" id="inTanggal" class="input" required></div>
+          <div class="field"><label for="inNamaAset">Nama Aset *</label><input id="inNamaAset" class="input" list="datalistAset" placeholder="Ketik nama / pilih aset lama" autocomplete="off" required></div>
+          <datalist id="datalistAset"></datalist>
+          <div class="field"><label for="inKategori">Kategori</label><input id="inKategori" class="input" placeholder="cth: Alat Medis"></div>
+          <div class="field"><label for="inSpesifikasi">Spesifikasi / Merk</label><input id="inSpesifikasi" class="input" placeholder="Merk, model, daya..."></div>
+          <div class="field"><label for="inLokasi">Lokasi Penyimpanan</label><input id="inLokasi" class="input" placeholder="cth: Gudang Alkes"></div>
+          <div class="field"><label for="inJumlah">Jumlah *</label><input type="number" id="inJumlah" class="input" min="1" step="1" required></div>
+          <div class="field"><label for="inSatuan">Satuan</label><input id="inSatuan" class="input" placeholder="unit / buah / box"></div>
+          <div class="field"><label for="inKondisi">Kondisi</label>
+            <select id="inKondisi" class="input">
+              <option>Baru</option><option>Bekas Layak Pakai</option><option>Rusak Ringan</option><option>Rusak Berat</option>
+            </select>
+          </div>
+          <div class="field"><label for="inAsal">Asal Aset</label><input id="inAsal" class="input" placeholder="cth: DAK / Pembelian / Hibah"></div>
+          <div class="field span2"><label for="inKetMasuk">Keterangan</label><textarea id="inKetMasuk" class="input" rows="2"></textarea></div>
+          <div class="span2 form-actions">
+            <button type="reset" class="btn btn-ghost">Reset</button>
+            <button type="submit" class="btn btn-primary" id="btnSimpanMasuk">Simpan Aset Masuk</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header">
+          <h3>Riwayat Aset Masuk</h3>
+          <div class="toolbar">
+            <label class="hint" for="fMasukDari">Periode:</label>
+            <input type="date" id="fMasukDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fMasukSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterMasuk_()" title="Hapus filter periode">✕</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakMasuk_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporMasuk_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="muatRiwayatMasuk()" title="Muat ulang">↻</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>No.</th><th>Tanggal</th><th>Kode</th><th>Nama Aset</th><th>Kategori</th><th class="num">Jumlah</th><th>Satuan</th><th>Kondisi</th><th>Asal</th><th>Dicatat Oleh</th>
+            </tr></thead>
+            <tbody id="tbodyMasuk"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Aset Keluar ===== -->
+    <section id="section-keluar" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>Form Input — Aset Keluar / Distribusi</h3>
+          <span class="hint">Pendistribusian aset ke ruangan / departemen</span>
+        </div>
+        <form id="formKeluar" class="form-grid" onsubmit="return simpanKeluar(event)">
+          <div class="field"><label for="outTanggal">Tanggal Keluar *</label><input type="date" id="outTanggal" class="input" required></div>
+          <div class="field"><label for="outKode">Pilih Aset *</label>
+            <select id="outKode" class="input" required></select>
+            <span class="hint" id="infoStok"></span>
+          </div>
+          <div class="field"><label for="outJumlah">Jumlah Keluar *</label><input type="number" id="outJumlah" class="input" min="1" step="1" required></div>
+          <div class="field"><label for="outSatuan">Satuan</label><input id="outSatuan" class="input" readonly></div>
+          <div class="field"><label for="outRuangan">Tujuan Ruangan *</label><input id="outRuangan" class="input" list="datalistRuangan" placeholder="cth: IGD" required></div>
+          <datalist id="datalistRuangan"></datalist>
+          <div class="field"><label for="outPenerima">Departemen / Penerima</label><input id="outPenerima" class="input" placeholder="cth: Kepala IGD"></div>
+          <div class="field span2"><label for="outKetKeluar">Keterangan</label><textarea id="outKetKeluar" class="input" rows="2" placeholder="Keperluan distribusi..."></textarea></div>
+          <div class="span2 form-actions">
+            <button type="reset" class="btn btn-ghost">Reset</button>
+            <button type="submit" class="btn btn-primary" id="btnSimpanKeluar">Simpan Aset Keluar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header">
+          <h3>Riwayat Aset Keluar</h3>
+          <div class="toolbar">
+            <label class="hint" for="fKeluarDari">Periode:</label>
+            <input type="date" id="fKeluarDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fKeluarSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterKeluar_()" title="Hapus filter periode">✕</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakKeluar_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporKeluar_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="muatRiwayatKeluar()" title="Muat ulang">↻</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>No.</th><th>Tanggal</th><th>Kode</th><th>Nama Aset</th><th class="num">Jumlah</th><th>Satuan</th><th>Ruangan</th><th>Penerima</th><th>Keterangan</th><th>Dicatat Oleh</th>
+            </tr></thead>
+            <tbody id="tbodyKeluar"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Monitoring Distribusi ===== -->
+    <section id="section-monitoring" class="section">
+      <div class="card">
+        <div class="card-header wrap">
+          <h3>Monitoring Distribusi</h3>
+          <div class="toolbar">
+            <label class="hint" for="filterRuangan">Ruangan:</label>
+            <select id="filterRuangan" class="input"></select>
+            <label class="hint" for="fMonDari">Periode:</label>
+            <input type="date" id="fMonDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fMonSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterMon_()" title="Hapus filter periode">✕</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakDistribusi_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporDistribusi_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+          </div>
+        </div>
+        <div class="chip-grid">
+          <div class="small-stat"><span class="l">Total Unit Keluar</span><span class="v" id="monTotalUnit">0</span></div>
+          <div class="small-stat"><span class="l">Jumlah Transaksi</span><span class="v" id="monTransaksi">0</span></div>
+          <div class="small-stat"><span class="l">Ruangan Tujuan</span><span class="v" id="monRuangan">0</span></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>No.</th><th>Tanggal</th><th>Kode</th><th>Nama Aset</th><th class="num">Jumlah</th><th>Satuan</th><th>Ruangan</th><th>Penerima</th><th>Keterangan</th><th>Dicatat Oleh</th>
+            </tr></thead>
+            <tbody id="tbodyDistribusi"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mt">
+        <div class="card-header"><h3>Rekapitulasi Distribusi per Ruangan</h3></div>
+        <div class="chart-box tall"><canvas id="chartDistribusiMon"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ===== Laporan terpusat ===== -->
+    <section id="section-laporan" class="section">
+      <div class="card">
+        <div class="card-header wrap">
+          <h3>Laporan Rekapitulasi</h3>
+          <div class="toolbar">
+            <span class="hint" id="infoLapPeriode"></span>
+            <label class="hint" for="fLapDari">Periode:</label>
+            <input type="date" id="fLapDari" class="input" title="Dari tanggal">
+            <span class="hint">—</span>
+            <input type="date" id="fLapSampai" class="input" title="Sampai tanggal">
+            <button class="btn btn-sm btn-outline" onclick="resetFilterLap_()" title="Hapus filter periode">✕</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakLaporanGabungan_()" title="Cetak seluruh rekap dalam satu dokumen">🖨 Cetak/PDF</button>
+            <button class="btn btn-sm btn-outline" onclick="eksporLaporanGabungan_()" title="Unduh seluruh rekap sebagai CSV">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="muatLaporan()" title="Muat ulang">↻</button>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-icon hijau">📦</div>
+            <div><span class="stat-label">Total Aset</span><strong class="stat-value" id="lapTotalAset">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon biru">🗃️</div>
+            <div><span class="stat-label">Total Stok</span><strong class="stat-value" id="lapTotalStok">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon toska">📥</div>
+            <div><span class="stat-label">Aset Masuk (Periode)</span><strong class="stat-value" id="lapMasukPeriode">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon kuning">📤</div>
+            <div><span class="stat-label">Aset Keluar (Periode)</span><strong class="stat-value" id="lapKeluarPeriode">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon toska">🧾</div>
+            <div><span class="stat-label">Transaksi Masuk</span><strong class="stat-value" id="lapTransaksiMasuk">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon kuning">🧾</div>
+            <div><span class="stat-label">Transaksi Keluar</span><strong class="stat-value" id="lapTransaksiKeluar">0</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-header"><h3>1. Stok per Kategori</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Kategori</th><th class="num">Jumlah Stok</th><th class="num">Jenis Aset</th></tr></thead>
+              <tbody id="tbodyLapStok"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>2. Aset Masuk per Kategori</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Kategori</th><th class="num">Jumlah Masuk</th><th class="num">Transaksi</th></tr></thead>
+              <tbody id="tbodyLapMasuk"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>3. Aset Keluar per Ruangan</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Ruangan</th><th class="num">Jumlah Keluar</th><th class="num">Transaksi</th></tr></thead>
+              <tbody id="tbodyLapKeluar"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>4. Tren Bulanan</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Bulan</th><th class="num">Aset Masuk</th><th class="num">Aset Keluar</th></tr></thead>
+              <tbody id="tbodyLapTren"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Modal konfirmasi ===== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3 id="modalTitle">Konfirmasi</h3>
+      <p id="modalBody"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="tutupModal_()">Batal</button>
+        <button class="btn btn-danger" id="modalConfirmBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastWrap"></div>
+
+  <script>
+    <?!= include('script.html'); ?>
+  </script>
+</body>
+</html>

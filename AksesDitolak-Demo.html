@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIASIK — Akses Ditolak (Demo)</title>
+  <script>
+    // Terapkan tema sebelum render pertama (cegah kedipan saat mode gelap)
+    // Urutan prioritas: preferensi lokal (siasik_tema) → cache default global (siasik_tema_global) → sistem
+    try {
+      var _t = localStorage.getItem('siasik_tema');
+      var _pilih;
+      if (_t === 'terang' || _t === 'gelap' || _t === 'auto') _pilih = _t;
+      else {
+        var _gt = localStorage.getItem('siasik_tema_global');
+        if (_gt === 'terang' || _gt === 'gelap' || _gt === 'auto') _pilih = _gt;
+      }
+      var _auto = !_pilih || _pilih === 'auto';
+      var _g = _auto
+        ? !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        : _pilih === 'gelap';
+      document.documentElement.setAttribute('data-theme', _g ? 'dark' : 'light');
+    } catch (e) {}
+  </script>
+  <style>
+    :root {
+      --teal-700: #0f766e;
+      --teal-600: #0d9488;
+      --teal-100: #ccfbf1;
+      --slate-900: #0f172a;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-400: #94a3b8;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --surface: #ffffff;
+      --merah-muda: #fee2e2;
+      color-scheme: light;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --slate-50: #0f172a;
+      --slate-100: #0f172a;
+      --slate-200: #334155;
+      --slate-400: #94a3b8;
+      --slate-600: #94a3b8;
+      --slate-700: #cbd5e1;
+      --slate-900: #f1f5f9;
+      --teal-100: rgba(45, 212, 191, .14);
+      --surface: #1e293b;
+      --merah-muda: rgba(239, 68, 68, .16);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Banner demo */
+    .banner-demo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      background: linear-gradient(90deg, #fffbeb, #fef3c7);
+      border-bottom: 1px solid #fcd34d;
+      color: #78350f;
+      font-size: 12.5px;
+      font-weight: 600;
+      box-shadow: 0 2px 10px rgba(120, 53, 15, .10);
+    }
+    .banner-demo .txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .banner-demo .txt strong { font-weight: 800; }
+    .banner-demo .btn { font-size: 11.5px; padding: 5px 10px; }
+    [data-theme="dark"] .banner-demo {
+      background: linear-gradient(90deg, #422006, #451a03);
+      border-bottom-color: #78350f;
+      color: #fde68a;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+    }
+    [data-theme="dark"] .banner-demo .btn-outline {
+      background: rgba(120, 53, 15, .35);
+      border-color: #92400e;
+      color: #fde68a;
+    }
+
+    /* Tombol */
+    .btn {
+      padding: 10px 18px; border-radius: 10px; font-family: inherit; font-weight: 600;
+      font-size: 13.5px; cursor: pointer; border: 1px solid transparent;
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      text-decoration: none; white-space: nowrap;
+      transition: background .15s, color .15s, border-color .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn-outline { background: var(--surface); border-color: var(--slate-200); color: var(--slate-700); }
+    .btn-outline:hover { border-color: var(--teal-600); color: var(--teal-700); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* Transisi halus saat beralih tema */
+    @media (prefers-reduced-motion: no-preference) {
+      html.tema-bertransisi *,
+      html.tema-bertransisi *::before,
+      html.tema-bertransisi *::after {
+        transition: background-color .35s ease, border-color .35s ease, color .35s ease, box-shadow .35s ease !important;
+      }
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+      background: linear-gradient(160deg, var(--slate-100) 0%, var(--teal-100) 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .tengah {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+    .kartu {
+      background: var(--surface);
+      border: 1px solid var(--slate-200);
+      border-radius: 18px;
+      box-shadow: 0 24px 64px rgba(15, 23, 42, .12);
+      padding: 40px 36px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+      animation: muncul .35s ease;
+    }
+    @keyframes muncul { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .ikon {
+      width: 68px; height: 68px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      background: var(--merah-muda);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 30px;
+    }
+    h1 { font-size: 20px; font-weight: 800; color: var(--slate-900); margin-bottom: 10px; }
+    p { font-size: 14px; color: var(--slate-600); line-height: 1.6; }
+    p.tambahan { margin-top: 14px; font-size: 12.5px; color: var(--slate-400); }
+    .tombol {
+      display: inline-block;
+      margin-top: 22px;
+      background: var(--teal-600);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13.5px;
+      padding: 12px 26px;
+      border-radius: 10px;
+      transition: background .15s;
+    }
+    .tombol:hover { background: var(--teal-700); }
+
+    @media (max-width: 620px) {
+      .banner-demo { flex-wrap: wrap; gap: 6px; padding: 6px 12px; }
+      .banner-demo .txt { white-space: normal; line-height: 1.3; }
+      .kartu { padding: 32px 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="banner-demo">
+    <span>🧪</span>
+    <span class="txt">Pratinjau halaman <strong>Akses Ditolak</strong> — tampilan saat akun Google belum terdaftar. Klik tombol tema untuk melihat mode terang &amp; gelap.</span>
+    <button class="btn btn-outline btn-sm" id="tombolTema" onclick="gantiTema_()" title="Tema: Auto — klik untuk ganti (Auto / Terang / Gelap)">🌗 Auto</button>
+    <a class="btn btn-outline btn-sm" href="SIASIK-Demo.html" title="Kembali ke demo aplikasi utama">← Demo SIASIK</a>
+  </div>
+
+  <div class="tengah">
+    <div class="kartu">
+      <div class="ikon">🚫</div>
+      <h1>Akses Ditolak</h1>
+      <p>
+        Aplikasi <strong>SIASIK — RSUD Mimika</strong> hanya dapat diakses oleh akun Google yang terdaftar.
+        Silakan <strong>masuk (login) dengan akun Google Anda</strong>. Jika tetap tidak bisa diakses,
+        hubungi admin SIASIK untuk didaftarkan.
+      </p>
+      <a class="tombol" href="https://accounts.google.com">Masuk dengan Google</a>
+      <p class="tambahan">Sistem Informasi Aset dan Logistik &middot; RSUD Mimika</p>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    var TEMA = 'auto'; // 'auto' | 'terang' | 'gelap'
+    var TEMA_GELAP = false; // tema yang benar-benar diterapkan
+
+    function temaSistemGelap_() {
+      return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    function temaTerapanGelap_() {
+      if (TEMA === 'terang') return false;
+      if (TEMA === 'gelap') return true;
+      return temaSistemGelap_();
+    }
+
+    // Transisi halus: kelas tema-bertransisi hanya aktif selama peralihan (dihapus setelah selesai)
+    function mulaiTransisiTema_() {
+      var d = document.documentElement;
+      d.classList.add('tema-bertransisi');
+      clearTimeout(window._timerTema);
+      window._timerTema = setTimeout(function () { d.classList.remove('tema-bertransisi'); }, 480);
+    }
+
+    function terapkanTema_(gambarUlang) {
+      TEMA_GELAP = temaTerapanGelap_();
+      document.documentElement.setAttribute('data-theme', TEMA_GELAP ? 'dark' : 'light');
+      var b = document.getElementById('tombolTema');
+      if (b) {
+        var label = TEMA === 'auto' ? '🌗 Auto' : (TEMA === 'gelap' ? '🌙 Gelap' : '☀️ Terang');
+        b.textContent = label;
+        b.title = 'Tema: ' + (TEMA === 'auto' ? (TEMA_GELAP ? 'Gelap (sistem)' : 'Terang (sistem)') : (TEMA === 'gelap' ? 'Gelap' : 'Terang')) + ' — klik untuk ganti (Auto / Terang / Gelap)';
+      }
+      // Halaman statis — tidak ada grafik yang perlu digambar ulang
+    }
+
+    function gantiTema_() {
+      var urutan = ['auto', 'terang', 'gelap'];
+      TEMA = urutan[(urutan.indexOf(TEMA) + 1) % urutan.length];
+      try { localStorage.setItem('siasik_tema', TEMA); } catch (e) {}
+      mulaiTransisiTema_();
+      terapkanTema_(true);
+    }
+
+    (function initTema_() {
+      try {
+        var tersimpan = localStorage.getItem('siasik_tema');
+        if (tersimpan === 'terang' || tersimpan === 'gelap') TEMA = tersimpan;
+      } catch (e) {}
+      terapkanTema_(false);
+      // Ikuti perubahan tema sistem secara real-time saat mode Auto
+      if (window.matchMedia) {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var onGanti = function () {
+          if (TEMA === 'auto' && temaTerapanGelap_() !== TEMA_GELAP) {
+            mulaiTransisiTema_();
+            terapkanTema_(true);
+          }
+        };
+        if (mq.addEventListener) mq.addEventListener('change', onGanti);
+        else if (mq.addListener) mq.addListener(onGanti); // Safari lama
+      }
+    })();
+  </script>
+</body>
+</html>
