@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// scripts/install-git-hooks.js — Aktifkan pre-commit hook SIASIK (validate.js)
+// scripts/install-git-hooks.js — Aktifkan pre-commit hook SIASIK
+// (menjalankan scripts/validate.js + scripts/test-form-simas.js otomatis)
 // Cara pakai:  node scripts/install-git-hooks.js
 //
 // Cara kerja: menyetel `core.hooksPath` ke folder hooks yang TER-VERSIONING
@@ -66,7 +67,8 @@ try {
 try { fs.chmodSync(hookPath, 0o755); } catch (e) { /* Windows: abaikan */ }
 
 console.log('✅ Pre-commit hook aktif: ' + hookPath);
-console.log('   Berjalan otomatis setiap "git commit" — commit diblokir bila validate.js gagal.');
+console.log('   Berjalan otomatis setiap "git commit" — commit diblokir bila validate.js');
+console.log('   atau test-form-simas.js gagal.');
 console.log('   Uji manual : bash scripts/git-hooks/pre-commit');
 console.log('   Copot      : git config --unset core.hooksPath');
 console.log('   Wajib node : SIASIK_HOOK_STRICT=1 membuat hook gagal bila node tak ada (mis. CI)');

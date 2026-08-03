@@ -89,14 +89,20 @@ Setiap kali mengubah `Code.gs` / HTML:
 
 ## 🧹 Validasi Otomatis (Git pre-commit hook)
 
-Setiap **commit** ke repo git otomatis menjalankan `node scripts/validate.js` — jika ada regresi,
-**commit diblokir** sampai diperbaiki (46 cek, selesai <1 detik).
+Setiap **commit** ke repo git otomatis menjalankan **dua lapis validasi** — jika ada regresi,
+**commit diblokir** sampai diperbaiki:
+1. `node scripts/validate.js` — 47 cek statis (selesai <1 detik).
+2. `node scripts/test-form-simas.js` — 17 cek alur simpan Aset Masuk/Keluar (DOM mock, tanpa browser).
 
 - **Aktifkan** (sekali saja per clone): `node scripts/install-git-hooks.js`
   (menyetel `core.hooksPath` ke folder hooks ter-versioning `scripts/git-hooks` — tidak perlu
   menyalin file; hook selalu sinkron dengan repo). Bila terdeteksi pengaturan hooks lain
   (mis. husky atau `.git/hooks/pre-commit`), installer menolak menimpa kecuali dijalankan
   dengan `node scripts/install-git-hooks.js --force`.
+- **Tes alur form (tanpa browser)**: `node scripts/test-form-simas.js` — menjalankan
+  logika asli demo (`SIASIK-Demo.html`) di Node dengan DOM mock untuk menguji alur simpan
+  **Aset Masuk/Keluar**: aset baru, stok bertambah, validasi (nama kosong, jumlah ≤ 0),
+  handler form lengkap, dan penolakan saat stok tidak mencukupi (17 cek).
 - **Uji manual**: `bash scripts/git-hooks/pre-commit`
 - **Lewati paksa** (tidak disarankan): `git commit --no-verify`
 - **Copot**: `git config --unset core.hooksPath`
@@ -113,6 +119,7 @@ Setiap **commit** ke repo git otomatis menjalankan `node scripts/validate.js` �
 - `Code.gs` ter-parse tanpa error
 - `styles.html` & `script.html` bebas scriptlet (`<?`)
 - JS inline `Index.html` (scriptlet dibuang) & `script.html` valid
+- `scripts/test-form-simas.js` (harness tes form) ter-parse
 
 **3. Konsistensi UI (id & handler)**
 - Semua id yang dirujuk JS (`$('…')`, `getElementById('…')`) ada di `Index.html`
@@ -164,6 +171,12 @@ Setiap **commit** ke repo git otomatis menjalankan `node scripts/validate.js` �
   hasil cetak resmi tetap profesional.
 - **Filter periode**: pada Riwayat Aset Masuk, Riwayat Aset Keluar, dan Monitoring Distribusi tersedia filter
   tanggal **Dari–Sampai** yang berlaku untuk tampilan tabel maupun laporan Cetak/CSV (termasuk ringkasan rekapitulasi).
+- **Grafik stok per ruangan/lokasi**: Dashboard menampilkan bar chart **"Stok per Ruangan / Lokasi"** —
+  agregasi `Jumlah Total` pada Master Inventory berdasarkan **Lokasi Penyimpanan** (melengkapi grafik
+  komposisi kategori & distribusi yang sudah ada).
+- **Cetak/PDF per ruangan**: di Monitoring Distribusi, tombol **🖨 Per Ruangan** mencetak laporan khusus
+  satu ruangan — pilih ruangan pada filter **Ruangan** dulu, lalu klik; hasilnya berisi tabel transaksi
+  distribusi ruangan tersebut plus **rekapitulasi aset** yang masuk ke ruangan (ringkasan + daftar asetnya).
 - **Halaman Laporan**: menu **Laporan** menyajikan rekapitulasi terpusat — statistik ringkas (total aset, stok,
   masuk/keluar periode) serta tabel rekap Stok per Kategori, Aset Masuk per Kategori, Aset Keluar per Ruangan,
   dan Tren Bulanan — dengan filter periode global (Dari–Sampai) yang berlaku untuk tampilan, **Cetak/PDF**

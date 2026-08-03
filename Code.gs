@@ -260,6 +260,7 @@ function getDashboardData() {
     masukBulanIni: masukBulanIni,
     keluarBulanIni: keluarBulanIni,
     kategori: getKategoriRingkasan_(),
+    stokPerRuangan: getStokPerRuangan_(),
     ringkasanDistribusi: getRingkasanDistribusi_(),
     riwayat: getRiwayatTransaksi_(8)
   };
@@ -277,6 +278,19 @@ function getKategoriRingkasan_() {
   master.forEach(function (r) {
     var k = String(r['Kategori'] || '').trim() || '(Tanpa Kategori)';
     agg[k] = agg[k] || { kategori: k, jumlah: 0 };
+    agg[k].jumlah += Number(r['Jumlah Total']) || 0;
+  });
+  var arr = Object.keys(agg).map(function (k) { return agg[k]; });
+  arr.sort(function (a, b) { return b.jumlah - a.jumlah; });
+  return arr;
+}
+
+function getStokPerRuangan_() {
+  var master = getMasterAset();
+  var agg = {};
+  master.forEach(function (r) {
+    var k = String(r['Lokasi Penyimpanan'] || '').trim() || '(Tanpa Lokasi)';
+    agg[k] = agg[k] || { ruangan: k, jumlah: 0 };
     agg[k].jumlah += Number(r['Jumlah Total']) || 0;
   });
   var arr = Object.keys(agg).map(function (k) { return agg[k]; });

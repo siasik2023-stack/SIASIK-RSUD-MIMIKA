@@ -127,6 +127,10 @@
           <div class="card-header"><h3>Distribusi per Ruangan</h3></div>
           <div class="chart-box"><canvas id="chartDistribusi"></canvas></div>
         </div>
+        <div class="card">
+          <div class="card-header"><h3>Stok per Ruangan / Lokasi</h3></div>
+          <div class="chart-box"><canvas id="chartStokRuangan"></canvas></div>
+        </div>
       </div>
 
       <div class="card mt">
@@ -309,6 +313,7 @@
             <button class="btn btn-sm btn-outline" onclick="resetFilterMon_()" title="Hapus filter periode">✕</button>
             <button class="btn btn-sm btn-outline" onclick="cetakDistribusi_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
             <button class="btn btn-sm btn-outline" onclick="eksporDistribusi_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakPerRuangan_()" title="Cetak laporan distribusi satu ruangan (pilih ruangan pada filter dulu)">🖨 Per Ruangan</button>
           </div>
         </div>
         <div class="chip-grid">

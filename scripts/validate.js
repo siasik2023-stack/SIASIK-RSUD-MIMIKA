@@ -71,6 +71,14 @@ try {
 } catch (e) {
   cek('script.html sintaks OK', false, e.message);
 }
+try {
+  // Buang baris shebang (#!/usr/bin/env node) — loader Node melepasnya saat
+  // menjalankan file, tetapi new Function() tidak.
+  new Function(baca('scripts/test-form-simas.js').replace(/^#![^\n]*\n/, ''));
+  cek('scripts/test-form-simas.js sintaks OK', true);
+} catch (e) {
+  cek('scripts/test-form-simas.js sintaks OK', false, e.message);
+}
 
 // --- 6. Semua id yang dirujuk JS ada di Index.html ---
 const index = baca('Index.html');

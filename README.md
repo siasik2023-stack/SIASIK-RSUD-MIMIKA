@@ -78,9 +78,17 @@ Saat popup **Cetak/PDF** atau **CSV** dibuka, tema efektif dihitung ulang dari *
 - `AksesDitolak-Demo.html` — pratinjau halaman penolakan akses; bisa dibuka dari banner demo SIASIK.
 - Tema di demo mengikuti logika prioritas yang sama, dengan default global **disimulasikan** lewat key `siasik_tema_global` (tanpa panggilan server).
 
+## 📊 Dashboard & Monitoring
+
+- **Grafik stok per ruangan/lokasi** — bar chart stok saat ini (agregasi `Jumlah Total` Master Inventory berdasarkan `Lokasi Penyimpanan`) di Dashboard.
+- **Cetak/PDF per ruangan** — di Monitoring Distribusi, tombol **🖨 Per Ruangan** mencetak laporan khusus satu ruangan (transaksi + rekap aset yang masuk ke ruangan itu); pilih ruangan pada filter dulu.
+
 ## 🔍 Validasi Otomatis & Git pre-commit hook
 
-**`node scripts/validate.js`** — 46 cek (selesai <1 detik) yang memblokir `git commit` bila ada regresi:
+**`node scripts/validate.js`** — 47 cek statis (selesai <1 detik) yang memblokir `git commit` bila ada regresi.
+**`node scripts/test-form-simas.js`** — tes otomatis alur form (Aset Masuk/Keluar) dengan menjalankan logika demo di Node + DOM mock: aset baru, stok bertambah, validasi, stok tak cukup (17 cek).
+
+Daftar cek statis validate.js:
 
 **1. Struktur & konfigurasi**
 - 6 file inti ada: `appsscript.json`, `Code.gs`, `Index.html`, `styles.html`, `script.html`, `AksesDitolak.html`
@@ -123,6 +131,8 @@ Saat popup **Cetak/PDF** atau **CSV** dibuka, tema efektif dihitung ulang dari *
 - Diperiksa di `Index.html`, `SIASIK-Demo.html`, dan `AksesDitolak.html`
 
 **Pre-commit hook** menjalankan validasi otomatis setiap `git commit`:
+- **`node scripts/validate.js`** (47 cek statis) **dan** **`node scripts/test-form-simas.js`**
+  (17 cek alur simpan form) dijalankan berurutan — commit diblokir jika salah satu gagal.
 - Aktifkan (sekali per clone): `node scripts/install-git-hooks.js`
   (menolak menimpa hooks lain kecuali dengan `--force`)
 - Lewati paksa (tidak disarankan): `git commit --no-verify`

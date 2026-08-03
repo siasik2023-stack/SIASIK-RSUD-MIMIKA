@@ -476,6 +476,10 @@
           <div class="card-header"><h3>Distribusi per Ruangan</h3></div>
           <div class="chart-box"><canvas id="chartDistribusi"></canvas></div>
         </div>
+        <div class="card">
+          <div class="card-header"><h3>Stok per Ruangan / Lokasi</h3></div>
+          <div class="chart-box"><canvas id="chartStokRuangan"></canvas></div>
+        </div>
       </div>
 
       <div class="card mt">
@@ -658,6 +662,7 @@
             <button class="btn btn-sm btn-outline" onclick="resetFilterMon_()" title="Hapus filter periode">✕</button>
             <button class="btn btn-sm btn-outline" onclick="cetakDistribusi_()" title="Cetak / simpan sebagai PDF">🖨 Cetak/PDF</button>
             <button class="btn btn-sm btn-outline" onclick="eksporDistribusi_()" title="Unduh sebagai file CSV (Excel)">⬇ CSV</button>
+            <button class="btn btn-sm btn-outline" onclick="cetakPerRuangan_()" title="Cetak laporan distribusi satu ruangan (pilih ruangan pada filter dulu)">🖨 Per Ruangan</button>
           </div>
         </div>
         <div class="chip-grid">
@@ -1170,6 +1175,16 @@
       return Object.keys(agg).map(function (k) { return agg[k]; }).sort(function (a, b) { return b.jumlah - a.jumlah; });
     }
 
+    function stokPerRuangan_() {
+      var agg = {};
+      MASTER.forEach(function (r) {
+        var k = String(r['Lokasi Penyimpanan'] || '').trim() || '(Tanpa Lokasi)';
+        agg[k] = agg[k] || { ruangan: k, jumlah: 0 };
+        agg[k].jumlah += Number(r['Jumlah Total']) || 0;
+      });
+      return Object.keys(agg).map(function (k) { return agg[k]; }).sort(function (a, b) { return b.jumlah - a.jumlah; });
+    }
+
     function ringkasanDistribusi_() {
       var agg = {};
       KELUAR.forEach(function (r) {
@@ -1236,6 +1251,7 @@
         masukBulanIni: jumlahPadaBulan_(MASUK, 'Tanggal Masuk', bulanIni),
         keluarBulanIni: jumlahPadaBulan_(KELUAR, 'Tanggal Keluar', bulanIni),
         kategori: kategoriRingkasan_(),
+        stokPerRuangan: stokPerRuangan_(),
         ringkasanDistribusi: ringkasanDistribusi_(),
         riwayat: riwayatTransaksi_(8)
       };
@@ -1367,6 +1383,7 @@
       $('statMasukBulan').textContent = d.masukBulanIni;
       $('statKeluarBulan').textContent = d.keluarBulanIni;
       gambarChartKategori_(d.kategori);
+      gambarChartStokRuangan_(d.stokPerRuangan);
       gambarChartDistribusi_(d.ringkasanDistribusi, 'chartDistribusi');
       renderAktivitas_(d.riwayat);
       muatTrend_();
@@ -1459,6 +1476,23 @@
           indexAxis: 'y', responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return c.raw + ' unit keluar'; } } } },
           scales: { x: { beginAtZero: true, ticks: { precision: 0, color: w.teks }, grid: { color: w.grid } }, y: { grid: { display: false }, ticks: { font: { size: 11 }, color: w.teks } } }
+        }
+      });
+    }
+
+    function gambarChartStokRuangan_(stok) {
+      var w = warnaChart_();
+      if (!stok || !stok.length) {
+        buatChart_('chartStokRuangan', { type: 'bar', data: { labels: ['Belum ada data'], datasets: [{ data: [0], backgroundColor: [TEMA_GELAP ? '#334155' : '#e2e8f0'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: w.teks } }, y: { beginAtZero: true, ticks: { color: w.teks }, grid: { color: w.grid } } } } });
+        return;
+      }
+      buatChart_('chartStokRuangan', {
+        type: 'bar',
+        data: { labels: stok.map(function (s) { return s.ruangan; }), datasets: [{ data: stok.map(function (s) { return s.jumlah; }), backgroundColor: PALETTE.slice(0, stok.length), borderRadius: 6, maxBarThickness: 34 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return c.raw + ' unit stok'; } } } },
+          scales: { x: { grid: { display: false }, ticks: { font: { size: 11 }, color: w.teks } }, y: { beginAtZero: true, ticks: { precision: 0, color: w.teks }, grid: { color: w.grid } } }
         }
       });
     }
@@ -2047,6 +2081,43 @@
     }
     function eksporDistribusi_() {
       unduhCsv_('monitoring-distribusi.csv', HEADER_LAPORAN_KELUAR, rowsDistribusiTerfilter_());
+    }
+
+    function ringkasanAsetPerRuangan_(rows) {
+      var agg = {};
+      rows.forEach(function (r) {
+        var k = String(r['Nama Aset'] || '').trim() || '(Tanpa Nama)';
+        agg[k] = agg[k] || { nama: k, total: 0 };
+        agg[k].total += Number(r['Jumlah']) || 0;
+      });
+      var arr = Object.keys(agg).map(function (k) { return agg[k]; });
+      arr.sort(function (a, b) { return b.total - a.total; });
+      var ruangan = rows.length && rows[0]['Tujuan Ruangan'] ? rows[0]['Tujuan Ruangan'] : 'Ruangan';
+      return {
+        judul: 'Rekapitulasi Distribusi Aset ke ' + ruangan,
+        kolom: ['Nama Aset', 'Jumlah'],
+        baris: arr.map(function (a) { return [a.nama, a.total]; }),
+        total: ['Total', arr.reduce(function (s, a) { return s + a.total; }, 0)]
+      };
+    }
+
+    function cetakPerRuangan_() {
+      var ruangan = $('filterRuangan').value;
+      if (ruangan === 'SEMUA') {
+        toast_('Pilih satu ruangan pada filter "Ruangan" terlebih dahulu, lalu klik Cetak Per Ruangan.', 'error');
+        return;
+      }
+      var rows = rowsDistribusiTerfilter_().filter(function (r) {
+        return String(r['Tujuan Ruangan'] || '').trim().toLowerCase() === String(ruangan).trim().toLowerCase();
+      });
+      if (!rows.length) {
+        toast_('Tidak ada transaksi distribusi untuk ruangan "' + ruangan + '" pada filter saat ini.', 'error');
+        return;
+      }
+      var sub = 'Ruangan: ' + ruangan + ' — ' + rows.length + ' transaksi';
+      var lp = labelPeriode_(FILTER.monDari, FILTER.monSampai);
+      if (lp) sub += ' • ' + lp;
+      cetakLaporan_('Laporan Distribusi per Ruangan', sub, HEADER_LAPORAN_KELUAR, rows, rows.length ? [ringkasanAsetPerRuangan_(rows)] : null);
     }
 
     /* --- Dashboard: Aktivitas Terbaru --- */

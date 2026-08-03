@@ -1,19 +1,19 @@
 #!/bin/sh
 # ============================================================
 # SIASIK — pre-commit hook
-# Menjalankan `node scripts/validate.js` otomatis sebelum commit.
-# Commit DIBLOKIR jika validasi gagal (regresi langsung ketahuan).
+# Menjalankan otomatis sebelum commit:
+#   1) node scripts/validate.js        (cek statis: sintaks, handler, id unik, dll.)
+#   2) node scripts/test-form-simas.js (tes alur simpan Aset Masuk/Keluar, DOM mock)
+# Commit DIBLOKIR jika salah satu gagal (regresi langsung ketahuan).
 #
 # Aktifkan (sekali saja per clone):  node scripts/install-git-hooks.js
 # Uji manual:                        bash scripts/git-hooks/pre-commit
 # Lewati paksa (tidak disarankan):   git commit --no-verify
 #
 # Catatan: hook ini dijalankan git dengan direktori kerja = akar repo,
-# jadi path relatif `scripts/validate.js` selalu benar.
+# jadi path relatif `scripts/...` selalu benar.
 # ============================================================
 set -u
-
-echo "▶ Validasi SIASIK (node scripts/validate.js)..."
 
 if ! command -v node >/dev/null 2>&1; then
   echo "⚠️  node tidak ditemukan di PATH — validasi pre-commit dilewati (commit tetap diproses)."
@@ -25,12 +25,15 @@ if ! command -v node >/dev/null 2>&1; then
   exit 0
 fi
 
-if ! node scripts/validate.js; then
-  echo ""
-  echo "❌ VALIDASI GAGAL — perbaiki masalah di atas sebelum commit."
-  echo "   Untuk memaksa commit (tidak disarankan): git commit --no-verify"
-  exit 1
-fi
+for SKRIP in validate.js test-form-simas.js; do
+  echo "▶ SIASIK: node scripts/$SKRIP"
+  if ! node "scripts/$SKRIP"; then
+    echo ""
+    echo "❌ GAGAL di scripts/$SKRIP — perbaiki masalah di atas sebelum commit."
+    echo "   Untuk memaksa commit (tidak disarankan): git commit --no-verify"
+    exit 1
+  fi
+done
 
-echo "✅ Validasi pre-commit lulus."
+echo "✅ Validasi pre-commit lulus (validate.js + test-form-simas.js)."
 exit 0
