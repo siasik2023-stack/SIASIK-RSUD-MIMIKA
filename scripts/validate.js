@@ -4,12 +4,14 @@
 // ketersediaan fungsi server yang dipanggil via google.script.run,
 // pola popup Cetak/CSV yang sinkron dengan tema global (temaGelapUntukPopup_),
 // kesinkronan panggilan google.script.run ↔ fungsi di Code.gs,
-// dan aksesibilitas tombol ikon (title/aria-label).
+// aksesibilitas tombol ikon (title/aria-label),
+// dan struktur YAML workflow GitHub Pages (.github/workflows/static.yml)
+// beserta keberadaan file yang direferensikannya.
 //
-// PENTING — SINKRONISASI DOKUMENTASI: jumlah cek (saat ini 46) dan daftarnya
+// PENTING — SINKRONISASI DOKUMENTASI: jumlah cek (saat ini 50) dan daftarnya
 // didokumentasikan di PETUNJUK-DEPLOY.md dan README.md (bagian "Daftar cek
 // validate.js"). Saat menambah/mengubah/menghapus cek, perbarui JUGA kedua
-// dokumen tersebut (jumlahnya tercantum di kalimat pembuka "46 cek").
+// dokumen tersebut (jumlahnya tercantum di kalimat pembuka "50 cek").
 'use strict';
 
 const fs = require('fs');
@@ -270,6 +272,125 @@ for (const f of ['Index.html', 'SIASIK-Demo.html', 'AksesDitolak.html']) {
   cek('Tombol ikon punya title/aria-label (' + f + ')', masalah.length === 0,
     masalah.join(' | ') || 'OK');
 }
+
+// --- 14. Workflow GitHub Pages (.github/workflows/static.yml) — struktur YAML inti ---
+// Node core tidak punya parser YAML dan proyek ini sengaja tanpa dependensi
+// eksternal, jadi kita validasi struktur yang paling rawan regresi saat mengedit
+// workflow (bukan parser YAML penuh):
+//   - file workflow ada
+//   - tanpa karakter tab (YAML melarang tab untuk indentasi)
+//   - kunci top-level wajib: name / on / jobs
+//   - indentasi konsisten (setiap level = +2 spasi; turun harus mendarat di
+//     level yang sudah dikenal — menangkap indent tidak rata / campur tab)
+//   - setiap job (anak `jobs:`) punya runs-on dan steps
+//   - kurung ekspresi ${{ ... }} seimbang
+// Blok literal (`key: |` / `key: >`) dilewati isinya agar heredoc (mis. isi
+// index.html di langkah deploy) bebas indentasi.
+const WORKFLOW = '.github/workflows/static.yml';
+cek('Workflow ' + WORKFLOW + ' ada', adaFile(WORKFLOW));
+
+function yamlMasalah(teks) {
+  const masalah = [];
+  const baris = teks.split('\n');
+
+  // a) tab di posisi indentasi dilarang (YAML: indentasi hanya spasi).
+  // Catatan: tab di dalam isi blok literal (run: | …) legal di YAML — hanya
+  // tab di awal baris (indentasi) yang ditandai.
+  baris.forEach((l, i) => {
+    if (/^\s*\t/.test(l)) masalah.push('tab di baris ' + (i + 1));
+  });
+
+  // b) kunci top-level wajib (boleh berisi nilai setelah kolon, mis. `name: ...`)
+  const kunciTop = new Set();
+  for (const l of baris) {
+    const m = /^([A-Za-z0-9_-]+):(\s|$)/.exec(l);
+    if (m) kunciTop.add(m[1]);
+  }
+  for (const k of ['name', 'on', 'jobs']) {
+    if (!kunciTop.has(k)) masalah.push('kunci top-level "' + k + '" hilang');
+  }
+
+  // c) pohon indentasi + properti setiap job
+  const stack = [];       // {indent, kunci} — kunci null = elemen daftar (-)
+  const jobs = new Map(); // kunci job -> {runsOn, steps}
+  let dalamBlok = false, indentBlok = -1;
+  for (let i = 0; i < baris.length; i++) {
+    const asli = baris[i];
+    const isi = asli.trim();
+    if (!isi || isi.startsWith('#')) continue;
+    const indent = asli.length - asli.trimStart().length;
+
+    // lewati isi blok literal (run: | ...) sampai baris dedent
+    if (dalamBlok) {
+      if (indent > indentBlok) continue;
+      dalamBlok = false;
+    }
+
+    const mKey = /^([A-Za-z0-9_.-]+):(\s|$)/.exec(isi);
+    const mItem = /^-\s/.test(isi);
+    const kunci = mKey && !mItem ? mKey[1] : null;
+
+    // sejajarkan tumpukan indentasi dengan baris ini
+    let induk = null;
+    while (stack.length && indent < stack[stack.length - 1].indent) stack.pop();
+    if (!stack.length) {
+      if (indent !== 0) { masalah.push('indentasi tak konsisten di baris ' + (i + 1)); continue; }
+      stack.push({ indent, kunci });
+    } else if (indent === stack[stack.length - 1].indent) {
+      induk = stack.length >= 2 ? stack[stack.length - 2].kunci : null;
+      stack[stack.length - 1] = { indent, kunci };
+    } else if (indent > stack[stack.length - 1].indent) {
+      // Konvensi proyek: tiap level = +2 spasi (indent lebih besar dari +2,
+      // mis. 4 spasi, juga ditandai sebagai tak konsisten — disengaja).
+      if (indent !== stack[stack.length - 1].indent + 2) {
+        masalah.push('indentasi tak konsisten di baris ' + (i + 1));
+        continue;
+      }
+      induk = stack[stack.length - 1].kunci;
+      stack.push({ indent, kunci });
+    }
+    // (stack tak kosong & indent > level teratas otomatis tercapai — setelah
+    // while-pop di atas, indent >= top selalu; cabang "mendarat di antara
+    // level" sudah tertangkap oleh cek +2 di atas, jadi tanpa else tambahan.)
+
+    // catat blok literal (run: | / >) untuk baris berikutnya
+    if (/^[A-Za-z0-9_.-]+:\s*[|>]\s*$/.test(isi)) {
+      dalamBlok = true;
+      indentBlok = indent;
+    }
+
+    // job = anak langsung `jobs:`; catat propertinya
+    if (induk === 'jobs' && mKey) jobs.set(kunci, { runsOn: false, steps: false });
+    if (mKey && jobs.has(induk)) {
+      if (kunci === 'runs-on') jobs.get(induk).runsOn = true;
+      if (kunci === 'steps') jobs.get(induk).steps = true;
+    }
+  }
+
+  // d) setiap job punya runs-on & steps
+  if (jobs.size === 0) masalah.push('tidak ada job di bawah "jobs:"');
+  for (const [nama, j] of jobs) {
+    if (!j.runsOn) masalah.push('job "' + nama + '" tanpa runs-on');
+    if (!j.steps) masalah.push('job "' + nama + '" tanpa steps');
+  }
+
+  // e) ekspresi ${{ ... }} seimbang
+  const buka = (teks.match(/\$\{\{/g) || []).length;
+  const tutup = (teks.match(/\}\}/g) || []).length;
+  if (buka !== tutup) masalah.push('${{ }} tidak seimbang (' + buka + ' buka vs ' + tutup + ' tutup)');
+
+  return masalah;
+}
+const yamlWorkflow = baca(WORKFLOW);
+const mYaml = yamlMasalah(yamlWorkflow);
+cek('Struktur YAML ' + WORKFLOW + ' valid', mYaml.length === 0, mYaml.join(' | ') || 'OK');
+
+// f) file yang direferensikan workflow (cp … _site/ atau href="…") harus ada di repo
+const refWorkflow = [...yamlWorkflow.matchAll(/(?:cp\s+([A-Za-z0-9_.-]+)\s+_site\/|href="([A-Za-z0-9_.-]+)")/g)]
+  .map((m) => m[1] || m[2]);
+const hilangFile = [...new Set(refWorkflow)].filter((f) => !adaFile(f));
+cek('File yang direferensikan workflow ada', hilangFile.length === 0,
+  hilangFile.join(', ') || (new Set(refWorkflow).size + ' file dicek'));
 
 console.log('\n' + (gagal === 0 ? '✅ SEMUA CEK LULUS' : '❌ ' + gagal + ' cek gagal'));
 process.exit(gagal === 0 ? 0 : 1);

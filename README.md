@@ -97,7 +97,7 @@ validasi yang sama dengan pre-commit hook (`validate.js` + `test-form-simas.js`)
 
 ## 🔍 Validasi Otomatis & Git pre-commit hook
 
-**`node scripts/validate.js`** — 47 cek statis (selesai <1 detik) yang memblokir `git commit` bila ada regresi.
+**`node scripts/validate.js`** — 50 cek statis (selesai <1 detik) yang memblokir `git commit` bila ada regresi.
 **`node scripts/test-form-simas.js`** — tes otomatis alur form (Aset Masuk/Keluar), validasi periode filter laporan, hapus aset, dan daftar ruangan, dengan menjalankan logika demo di Node + DOM mock: aset baru, stok bertambah, validasi, stok tak cukup, distribusi ke ruangan, rentang periode, dan ruanganList_ (54 cek).
 
 Daftar cek statis validate.js:
@@ -142,8 +142,15 @@ Daftar cek statis validate.js:
   `title` atau `aria-label`/`aria-labelledby` **non-kosong** (case-insensitive, kutip ganda/tunggal)
 - Diperiksa di `Index.html`, `SIASIK-Demo.html`, dan `AksesDitolak.html`
 
+**9. Workflow GitHub Pages (`static.yml`)** 🌐
+- File `.github/workflows/static.yml` ada & struktur YAML inti valid: tanpa tab,
+  kunci top-level `name`/`on`/`jobs` ada, indentasi konsisten (setiap level =
+  +2 spasi), tiap job punya `runs-on` & `steps`, ekspresi `${{ … }}` seimbang
+- File demo yang direferensikan workflow (`cp … _site/`, `href="…"`) ada di repo
+  — regresi rename/penghapusan file demo langsung ketahuan saat commit
+
 **Pre-commit hook** menjalankan validasi otomatis setiap `git commit`:
-- **`node scripts/validate.js`** (47 cek statis) **dan** **`node scripts/test-form-simas.js`**
+- **`node scripts/validate.js`** (50 cek statis) **dan** **`node scripts/test-form-simas.js`**
   (54 cek alur simpan form, filter periode, hapus aset, ruangan) dijalankan berurutan — commit diblokir jika salah satu gagal.
 - Aktifkan (sekali per clone): `node scripts/install-git-hooks.js`
   (menolak menimpa hooks lain kecuali dengan `--force`)

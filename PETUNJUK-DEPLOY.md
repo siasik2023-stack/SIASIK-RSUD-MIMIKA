@@ -92,7 +92,7 @@ Setiap kali mengubah `Code.gs` / HTML:
 
 Setiap **commit** ke repo git otomatis menjalankan **dua lapis validasi** — jika ada regresi,
 **commit diblokir** sampai diperbaiki:
-1. `node scripts/validate.js` — 47 cek statis (selesai <1 detik).
+1. `node scripts/validate.js` — 50 cek statis (selesai <1 detik).
 2. `node scripts/test-form-simas.js` — 54 cek alur simpan Aset Masuk/Keluar, filter periode, hapus aset, & daftar ruangan (DOM mock, tanpa browser).
 
 - **Aktifkan** (sekali saja per clone): `node scripts/install-git-hooks.js`
@@ -154,6 +154,13 @@ Setiap **commit** ke repo git otomatis menjalankan **dua lapis validasi** — ji
 - Semua tombol **ikon murni** (teks tanpa huruf/angka: emoji, ✕/↻, SVG, atau kosong) wajib punya
   `title` atau `aria-label`/`aria-labelledby` **non-kosong** (case-insensitive, kutip ganda/tunggal)
 - Diperiksa di `Index.html`, `SIASIK-Demo.html`, dan `AksesDitolak.html`
+
+**9. Workflow GitHub Pages (`static.yml`)** 🌐
+- `.github/workflows/static.yml` ada & struktur YAML inti valid — tanpa tab,
+  kunci top-level `name`/`on`/`jobs` ada, indentasi konsisten (setiap level =
+  +2 spasi), tiap job punya `runs-on` & `steps`, ekspresi `${{ … }}` seimbang
+- File demo yang direferensikan workflow (`cp … _site/`, `href="…"`) ada di repo
+  — regresi rename/penghapusan file demo langsung ketahuan saat commit
 
 ---
 
